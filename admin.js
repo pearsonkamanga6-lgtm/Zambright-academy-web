@@ -81,7 +81,7 @@
  function scienceCollectionUrl(resource){
    if(resource.subject!=="Science"||resource.content_type!=="Past paper")return null;
    const num=sciencePaperNum(resource.paper_number);
-   return num?"science-paper-"+num+".html":null;
+   return num?"index.html?view=science&paper="+num:"index.html?view=science";
  }
  function syncScienceSelector(){
    const form=$("material-form"),panel=$("science-paper-selector-wrap"),select=$("science-paper-selector");
