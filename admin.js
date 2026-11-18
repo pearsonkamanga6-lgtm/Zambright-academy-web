@@ -75,7 +75,7 @@
    rows.forEach(function(row){
      const container=renderTag("article",undefined,"entry");
      const top=renderTag("h3",row.title || row.name);
-     top.append(renderTag("span",row.status,"badge"));
+     top.append(renderTag("span",row.status==="published"?"Published — visible to visitors":row.status==="review"?"Under review — PRIVATE":"Draft — PRIVATE, not on website","badge"));
      container.append(top);
      const details=kind==="materials" ?
        [row.subject,row.grade,row.exam_year,row.paper_number,row.content_type,row.access_type==="paid"?"K"+Number(row.price_zmw).toFixed(2):"Free"].filter(Boolean).join(" · ") :
@@ -87,6 +87,26 @@
      const actions=renderTag("div",undefined,"buttons");
      const edit=renderTag("button","Edit","button secondary");edit.type="button";edit.addEventListener("click",function(){editRecord(kind,row);});
      actions.append(edit);
+     if(kind==="materials"){
+       if(row.status!=="published"){
+         const publish=renderTag("button","✅ Review & Publish","button gold");
+         publish.type="button";
+         publish.addEventListener("click",function(){
+           editRecord("materials",row);
+           field($("material-form"),"status").value="published";
+           notify("This paper is currently PRIVATE. Review the four quality checks, confirm the details and click Save or Publish PDF. It will then appear automatically in the public "+row.subject+" library.");
+           const checks=$("material-form").querySelector(".checks");
+           if(checks)checks.scrollIntoView({behavior:"smooth",block:"center"});
+         });
+         actions.append(publish);
+       }else{
+         const publicLink=renderTag("a","View on live website ↗","button secondary");
+         publicLink.href="index.html?subject="+encodeURIComponent(row.subject)+"#library";
+         publicLink.target="_blank";
+         publicLink.rel="noopener noreferrer";
+         actions.append(publicLink);
+       }
+     }
      if(kind==="materials"&&row.storage_path){
        const preview=renderTag("button","Open PDF","button secondary");
        preview.type="button";preview.addEventListener("click",async function(){
@@ -112,7 +132,7 @@
    if(kind==="materials")["branding_checked","page_order_checked","diagrams_checked","answers_checked"].forEach(k=>field(form,k).checked=Boolean(row[k]));
    if(kind==="links")field(form,"is_affiliate").value=row.is_affiliate?"yes":"no";
    form.scrollIntoView({behavior:"smooth",block:"start"});
-   notify("Editing: "+(row.title||row.name)+". Save changes when ready.");
+   notify("Editing: "+(row.title||row.name)+(kind==="materials"&&row.status!=="published" ? ". This paper is PRIVATE. Select Published, finish the four review checks, then Save or Publish PDF to make it appear on the website." : ". Save changes when ready."));
  }
  async function removeRecord(kind,row){
    if(!window.confirm("Permanently delete '"+(row.title||row.name)+"'? This cannot be undone."))return;
