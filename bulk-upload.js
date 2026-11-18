@@ -125,16 +125,26 @@ async function inspect(item,defaultGrade){
  if(!grade.value)notes.push("Grade defaulted to "+item.grade+"; check and correct if necessary.");
  if(item.subject&&item.paper&&item.year){
    const condition=/\bgce\b/i.test(filename+" "+cover.slice(0,450))?" GCE":
-     /\bspecimen\b/i.test(filename+" "+cover.slice(0,450))?" Specimen":"";
+     /\bspecimen\b/i.test(filename+" "+cover.slice(0,450))?" Specimen":
+     /\binternal\b/i.test(filename+" "+cover.slice(0,450))?" Internal":"";
    item.title=(item.subject+" "+item.year+" "+item.paper+condition).slice(0,180);
  }
  item.notes=notes;
  item.analyzed=true;
  item.status="ready";
 }
+function examVariant(title){
+ const s=text(title).toLowerCase();
+ if(/\bgce\b/.test(s))return "gce";
+ if(/\bspecimen\b/.test(s))return "specimen";
+ // Internal / School Certificate papers belong to the regular exam stream.
+ return "regular";
+}
 function uniqueKey(item){
- return [item.subject.trim().toLowerCase(),item.grade.trim().toLowerCase().replace(/^grade\s*/,""),
-   item.year,item.paper.trim().toLowerCase(),item.type.trim().toLowerCase()].join("|");
+ const kind=text(item.type).trim().toLowerCase();
+ const variant=kind==="past paper"?examVariant(item.title):text(item.title).trim().toLowerCase();
+ return [text(item.subject).trim().toLowerCase(),text(item.grade).trim().toLowerCase().replace(/^grade\s*/,""),
+   text(item.year),text(item.paper).trim().toLowerCase(),kind,variant].join("|");
 }
 function validate(item){
  const errors=[];
@@ -288,7 +298,7 @@ async function addFiles(files){
    renderQueue();
  }
  analyzing=false;renderQueue();
- status("PDFs added. Check each subject, year, paper number, grade and title. Fix uncertain results before uploading. All uploads will remain PRIVATE drafts.");
+ status("PDFs added. Check each subject, year, paper number, grade and exam stream (GCE, Internal or Specimen) in the title. Fix uncertain results before uploading. All uploads remain PRIVATE drafts.");
 }
 async function fetchExisting(){
  const all=[],step=250;
