@@ -118,17 +118,21 @@
   async function downloadPdf(item,button){
     if(item.access_type!=="free")return;
     const original=button.textContent;
-    button.disabled=true;button.textContent="Downloading…";
+    button.disabled=true;button.textContent="Preparing download…";
     try{
-      // Downloads the published PDF as a Blob so mobile and desktop browsers can save a named offline copy.
-      const response=await client.storage.from("zambright-materials").download(item.storage_path);
+      // Stream the file directly from Supabase: avoids buffering large PDFs in mobile memory.
+      // The signed URL enforces Content-Disposition: attachment and preserves the filename.
+      const response=await client.storage.from("zambright-materials")
+        .createSignedUrl(item.storage_path,120,{download:fileNameFor(item)});
       if(response.error)throw response.error;
-      if(!response.data)throw Error("The PDF file could not be retrieved.");
-      const blobUrl=URL.createObjectURL(response.data);
+      if(!response.data||!response.data.signedUrl)throw Error("Unable to prepare a secure download link.");
       const a=document.createElement("a");
-      a.href=blobUrl;a.download=fileNameFor(item);
+      a.href=response.data.signedUrl;
+      a.download=fileNameFor(item);
+      a.rel="noopener noreferrer";
       document.body.appendChild(a);a.click();a.remove();
-      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+      const status=document.getElementById("pdf-preview-status");
+      if(pdfModal&&!pdfModal.hidden&&status)status.textContent="Download started. Check your browser's Downloads folder when it finishes.";
     }catch(error){
       window.alert("Download failed. Please try again or contact ZamBright Academy. "+(error.message||""));
     }finally{button.disabled=false;button.textContent=original;}
