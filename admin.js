@@ -28,10 +28,10 @@
        const page=await pdf.getPage(1);
        const text=await page.getTextContent();
        const coverYears=findYears(text.items.map(item=>item.str||"").join(" "));
-       if(coverYears.length>1)return {year:null,reason:"Several years appear on the cover. Enter the actual examination year yourself."};
-       if(coverYears.length===1)return {year:coverYears[0],source:"PDF cover"};
-       if(fileYears.length===1)return {year:fileYears[0],source:"filename"};
-       return {year:null,reason:"No readable year found on the PDF cover. Scanned papers may need manual entry."};
+       if(coverYears.length>1)return {year:null,pageCount:pdf.numPages,reason:"Several years appear on the cover. Enter the actual examination year yourself."};
+       if(coverYears.length===1)return {year:coverYears[0],source:"PDF cover",pageCount:pdf.numPages};
+       if(fileYears.length===1)return {year:fileYears[0],source:"filename",pageCount:pdf.numPages};
+       return {year:null,pageCount:pdf.numPages,reason:"No readable year found on the PDF cover. Scanned papers may need manual entry."};
      }finally{
        if(pdf)await pdf.destroy().catch(()=>{});
        else await task.destroy().catch(()=>{});
@@ -72,16 +72,39 @@
    document.querySelectorAll(".tab-page").forEach((p)=>p.classList.toggle("hidden",p.id!=="tab-"+tab));
  }
 
- function sciencePaperNum(text){
+
+ function paperNumber(text){
    const v=String(text||"").trim().toLowerCase();
-   if(/^(?:paper\s*(?:0*1|one)|0*1)$/.test(v))return 1;
-   if(/^(?:paper\s*(?:0*2|two)|0*2)$/.test(v))return 2;
-   return null;
+   const m=v.match(/^(?:paper[\s:-]*)?(0?[123]|one|two|three)$/);
+   return m?({"1":1,"01":1,one:1,"2":2,"02":2,two:2,"3":3,"03":3,three:3}[m[1]]||null):null;
  }
- function scienceCollectionUrl(resource){
-   if(resource.subject!=="Science"||resource.content_type!=="Past paper")return null;
-   const num=sciencePaperNum(resource.paper_number);
-   return num?"index.html?view=science&paper="+num:"index.html?view=science";
+ // Retained name to preserve existing science selector logic.
+ function sciencePaperNum(text){const n=paperNumber(text);return n===1||n===2?n:null;}
+ function publicResourceUrl(resource){
+   const subject=String(resource.subject||"");
+   if(!subject)return "index.html#library";
+   const base=subject==="Science"?"index.html?view=science":
+     "index.html?view=subject&subject="+encodeURIComponent(subject);
+   const n=resource.content_type==="Past paper"?paperNumber(resource.paper_number):null;
+   return base+(n?"&paper="+n:"&material=other");
+ }
+ function metadataIssues(resource){
+   if(resource.content_type!=="Past paper")return [];
+   const issues=[];
+   const paper=paperNumber(resource.paper_number);
+   if(!paper)issues.push("Choose the actual examination paper number (Paper 1, 2 or 3).");
+   if(!resource.exam_year)issues.push("The examination year is missing.");
+   const title=String(resource.title||"");
+   const subjects=["Mathematics","Science","Physics","Biology","Chemistry","Civic Education","Religious Education","English","Literature"];
+   const foundSubject=subjects.find(name=>new RegExp("\\b"+name.replace(/\s+/g,"\\s+")+"\\s+paper\\s*\\d\\b","i").test(title));
+   if(foundSubject&&foundSubject!==resource.subject)issues.push("Title indicates "+foundSubject+" but the selected subject is "+resource.subject+".");
+   const titlePaper=title.match(/\bpaper[\s:-]*(0?[123])\b/i);
+   if(titlePaper&&paper&&Number(titlePaper[1])!==paper)issues.push("Title says Paper "+Number(titlePaper[1])+" but the paper-number field says Paper "+paper+".");
+   const titleYears=[...new Set([...title.matchAll(/\b(?:19[89]\d|20[0-3]\d)\b/g)].map(x=>Number(x[0])))];
+   if(titleYears.length===1&&resource.exam_year&&titleYears[0]!==Number(resource.exam_year)){
+     issues.push("Title says "+titleYears[0]+" but examination-year field says "+resource.exam_year+".");
+   }
+   return issues;
  }
  function syncScienceSelector(){
    const form=$("material-form"),panel=$("science-paper-selector-wrap"),select=$("science-paper-selector");
@@ -158,7 +181,15 @@
      container.append(renderTag("p",details,"meta"));
      if(kind!=="materials"){
        container.append(renderTag("p", (kind==="posts"?row.body:row.description).slice(0,190)));
-     }else if(row.description){container.append(renderTag("p",row.description));}
+     }else{
+       if(row.description)container.append(renderTag("p",row.description));
+       const issues=metadataIssues(row);
+       if(issues.length)container.append(renderTag("p","⚠ Metadata needs review: "+issues.join(" "),"metadata-alert"));
+       const size=Number(row.file_size_bytes||0);
+       const pageTotal=Number(row.page_count||0);
+       const details=[size>0?(size/(1024*1024)).toFixed(1)+" MB":"",pageTotal>0?pageTotal+" pages":""].filter(Boolean).join(" · ");
+       if(details)container.append(renderTag("p","PDF · "+details,"meta"));
+     }
      const actions=renderTag("div",undefined,"buttons");
      const edit=renderTag("button","Edit","button secondary");edit.type="button";edit.addEventListener("click",function(){editRecord(kind,row);});
      actions.append(edit);
@@ -176,7 +207,7 @@
          actions.append(publish);
        }else{
          const publicLink=renderTag("a","View on live website ↗","button secondary");
-         publicLink.href=scienceCollectionUrl(row)||"index.html?subject="+encodeURIComponent(row.subject)+"#library";
+         publicLink.href=publicResourceUrl(row)||"index.html?subject="+encodeURIComponent(row.subject)+"#library";
          publicLink.target="_blank";
          publicLink.rel="noopener noreferrer";
          actions.append(publicLink);
@@ -201,7 +232,7 @@
  function editRecord(kind,row){
    showTab(kind);
    const form=$(kind==="materials"?"material-form":kind==="posts"?"post-form":"link-form");
-   const common=kind==="materials" ? ["id","title","subject","grade","topic","exam_year","paper_number","content_type","access_type","price_zmw","status","storage_path","description"] :
+   const common=kind==="materials" ? ["id","title","subject","grade","topic","exam_year","paper_number","page_count","content_type","access_type","price_zmw","status","storage_path","description"] :
      kind==="posts"?["id","title","category","body","status"]:["id","name","url","category","status","description"];
    common.forEach(function(k){const f=field(form,k);if(f)f.value = row[k] === null ? "" : row[k];});
    if(kind==="materials"){
@@ -242,7 +273,16 @@
      const msg="Science past papers must be assigned to Paper 1 or Paper 2. Select the correct Science paper collection before publishing.";
      notify(msg,"error");publishMessage(msg,"error",true);return;
    }
-   const yearRaw=val(form,"exam_year");
+   if(status==="published"&&val(form,"content_type")==="Past paper"){
+     const proposed={title:val(form,"title"),subject:val(form,"subject"),exam_year:val(form,"exam_year")?Number(val(form,"exam_year")):null,
+       paper_number:val(form,"paper_number"),content_type:"Past paper"};
+     const issues=metadataIssues(proposed);
+     if(issues.length){
+       const msg="Please correct this paper before publishing: "+issues.join(" ");
+       notify(msg,"error");publishMessage(msg,"error",true);return;
+     }
+   }
+      const yearRaw=val(form,"exam_year");
    if(status==="published" && val(form,"content_type")==="Past paper" && !yearRaw){
      const msg="Enter the examination year shown on the PDF (for example 2011). A past paper cannot be published without its year.";
      notify(msg,"error");publishMessage(msg,"error",true);yearFeedback(msg,true);return;
@@ -271,6 +311,9 @@
        const upload=await client.storage.from(filesBucket).upload(newPath,file,{contentType:"application/pdf",upsert:false});
        if(upload.error)throw upload.error;
        data.storage_path=newPath;
+       data.file_size_bytes=file.size;
+       const pages=Number(val(form,"page_count"));
+       data.page_count=Number.isInteger(pages)&&pages>0?pages:null;
      }
      const res=id?await client.from("zambright_materials").update(data).eq("id",id).select("id").single():
        await client.from("zambright_materials").insert(data).select("id").single();
@@ -282,7 +325,7 @@
      clean(form);notify("Resource saved as "+status+". It will "+(status==="published"?"appear in the public library under "+data.subject+".":"remain private until you publish it.") ,"ok");
      if(status==="published"){
        const siteLink=renderTag("a"," View "+data.subject+" on public website ↗");
-       siteLink.href=scienceCollectionUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
+       siteLink.href=publicResourceUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
        siteLink.target="_blank";siteLink.rel="noopener noreferrer";
        siteLink.style.display="inline-block";siteLink.style.marginTop="6px";siteLink.style.fontWeight="bold";
        message.append(siteLink);
@@ -293,7 +336,7 @@
        const target=$("publish-feedback");
        if(target){
          const link=document.createElement("a");
-         link.href=scienceCollectionUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
+         link.href=publicResourceUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
          link.target="_blank";link.rel="noopener noreferrer";
          link.textContent=" Open the public "+data.subject+" library ↗";
          target.append(document.createElement("br"),link);
@@ -356,12 +399,19 @@
      const file=pdfInput.files && pdfInput.files[0];
      const selection=++latestSelection;
      uploadedStatus.textContent=file ? "Selected: "+file.name+" ("+(file.size/1024/1024).toFixed(2)+" MB). Complete steps 2 and 3 below." : "No PDF selected yet.";
+     field($("material-form"),"page_count").value="";
+     const countInfo=$("pdf-page-count-feedback");
+     if(countInfo)countInfo.textContent=file?"PDF selected. Checking page count…":"File size and page count will be shown to visitors when available.";
      if(!file){yearFeedback("Choose a PDF, or type the examination year manually.",false);return;}
      if(!(file.type==="application/pdf" || /\.pdf$/i.test(file.name))){yearFeedback("Only PDF files are supported.",true);return;}
      yearFeedback("Checking the first page for its examination year…",false);
      const previousYear=val($("material-form"),"exam_year");
      const result=await detectExamYear(file);
      if(selection!==latestSelection)return;
+     const countPages=Number(result.pageCount||0);
+     if(Number.isInteger(countPages)&&countPages>0)field($("material-form"),"page_count").value=String(countPages);
+     if(countInfo)countInfo.textContent=(file.size/(1024*1024)).toFixed(1)+" MB · "+
+       (countPages>0?countPages+" pages detected":"Page count unavailable for this PDF");
      if(result.year){
        if(!previousYear && !val($("material-form"),"exam_year")){
          field($("material-form"),"exam_year").value=String(result.year);
@@ -414,6 +464,7 @@
    field(materialsForm,"subject").addEventListener("change",syncScienceSelector);
    field(materialsForm,"content_type").addEventListener("change",syncScienceSelector);
    field(materialsForm,"paper_number").addEventListener("input",syncScienceSelector);
+   field(materialsForm,"paper_number").addEventListener("change",syncScienceSelector);
    const scienceSelector=$("science-paper-selector");
    if(scienceSelector)scienceSelector.addEventListener("change",()=>{
      if(scienceSelector.value)field(materialsForm,"paper_number").value=scienceSelector.value;
