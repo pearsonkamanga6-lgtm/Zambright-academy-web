@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#082d73">
   <title>ZamBright Academy — Owner Dashboard</title>
   <link rel="icon" href="assets/zambright-logo.png" type="image/png">
+  <link rel="stylesheet" href="bulk-upload.css?v=2.1.0">
   <style>
     :root{--navy:#082d73;--deep:#061e4a;--gold:#f5b400;--pale:#edf4ff;--ink:#203049;--muted:#60718a;--border:#d9e4f4}
     *{box-sizing:border-box}body{margin:0;background:#f4f7fc;font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.5}
@@ -62,7 +63,8 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script defer src="pdf-year-reader.js"></script>
   <script defer src="site-config.js"></script>
-  <script defer src="admin.js?v=2-20261118-v2final"></script>
+  <script defer src="bulk-upload.js?v=2.1.0"></script>
+  <script defer src="admin.js?v=2.1.0"></script>
 </head>
 <body>
   <div class="tinybar"><div class="wrap">🇿🇲 Made for Zambian learners and teachers · <strong>Administrator workspace</strong></div></div>
@@ -84,7 +86,8 @@
       <div class="upload-callout">
         <div><h2>📤 Upload a PDF paper</h2><p>Choose a Science Paper 1 or Paper 2 upload. Once approved and published, it appears automatically in the matching Science collection for visitors to open and download.</p></div>
         <div class="upload-actions">
-          <button id="quick-upload" class="button gold" type="button">Upload PDF now</button>
+          <button id="quick-upload" class="button gold" type="button">Upload one PDF</button>
+          <button id="quick-bulk" class="button gold" type="button">📚 Upload multiple PDFs</button>
           <button id="science-preset" class="button secondary" type="button">Upload Science Paper 1</button>
           <button id="science-2-preset" class="button secondary" type="button">Upload Science Paper 2</button>
         </div>
@@ -117,6 +120,36 @@
         </div>
       </section>
       <section id="tab-materials" class="tab-page">
+        <div id="bulk-upload-panel" class="panel bulk-panel">
+          <div class="bulk-head">
+            <h2>📚 Bulk Upload — Multiple PDFs</h2><span class="bulk-highlight">NEW · V2.1</span>
+          </div>
+          <p class="bulk-help">Select several past papers or educational PDFs at once. ZamBright tries to read the subject, year, paper number and grade from each filename and PDF cover. <strong>Review and correct every suggestion before uploading.</strong> Files are saved as private drafts until you approve and publish them.</p>
+          <div class="bulk-chooser">
+            <label for="bulk-files">STEP 1 — Choose multiple PDFs from your phone or computer
+              <input id="bulk-files" type="file" accept=".pdf,application/pdf" multiple aria-describedby="bulk-file-help">
+            </label>
+            <p id="bulk-file-help" class="hint">Choose up to 30 PDFs per batch; maximum 50 MB per file. More PDFs can be added to your current queue before uploading.</p>
+            <div class="bulk-config">
+              <label for="bulk-default-grade">Default grade/form for uncertain files
+                <input id="bulk-default-grade" value="12" maxlength="40" placeholder="e.g. 12 or Form 2">
+              </label>
+              <small>You can change the grade separately on each paper. Automatic detection happens locally in your browser; the PDFs upload only when you press the upload button.</small>
+            </div>
+          </div>
+          <h3 class="form-subhead">STEP 2 — Check detected details for every PDF</h3>
+          <p id="bulk-summary" class="hint" aria-live="polite">No PDFs selected yet.</p>
+          <div id="bulk-items" class="bulk-items" aria-label="PDFs ready for checking"></div>
+          <div class="bulk-actions">
+            <button type="button" id="bulk-start" class="button gold" disabled>Upload selected PDFs as private drafts</button>
+            <button type="button" id="bulk-clear" class="button secondary" disabled>Clear selection</button>
+          </div>
+          <progress id="bulk-progress" class="bulk-progress" hidden max="1" value="0" aria-label="Batch upload progress"></progress>
+          <div id="bulk-status" class="bulk-status" role="status" aria-live="polite">Choose PDFs above to begin. Each file can be corrected before upload.</div>
+          <div id="bulk-finish" class="bulk-finish" role="status" aria-live="polite" hidden></div>
+          <div class="bulk-divider">STEP 3 — Review and publish each saved PDF from Saved resources below</div>
+          <p class="hint">Uploads are private drafts by design. Confirm the actual contents, diagrams, answers and page order for each PDF before using Review checklist to publish. Your existing single-file uploader below still works.</p>
+        </div>
         <div class="panel" id="upload-panel"><h2>Upload or edit a PDF</h2><p class="hint">The file is stored securely in Supabase. After publication, the public website automatically displays it under the subject you select.</p>
           <form id="material-form">
             <input type="hidden" name="id"><input type="hidden" name="storage_path"><input type="hidden" name="page_count">
@@ -169,7 +202,7 @@
             <div class="buttons"><button class="button gold" type="submit">Save or Publish PDF</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
           </form>
         </div>
-        <div class="panel"><div class="toolbar"><h2>Saved resources by examination year</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
+        <div class="panel" id="saved-resources"><div class="toolbar"><h2>Saved resources by examination year</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
       </section>
       <section id="tab-posts" class="tab-page hidden">
         <div class="panel"><h2>Write an article</h2><p class="hint">Write plain text. Financial-literacy posts should discuss costs and risks fairly and avoid promising that a loan will be approved.</p>
