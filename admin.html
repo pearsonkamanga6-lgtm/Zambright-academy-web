@@ -81,10 +81,11 @@
       <div class="panel"><strong>Signed in as:</strong> <span id="admin-email"></span><p class="hint">Only approved, published materials are shown on the public site. Your draft PDFs are private. Paid downloads are not automatically enabled until a verified Mobile Money checkout is connected.</p></div>
       <div class="dashboard-hero"><h2>Welcome to your ZamBright Academy workspace</h2><p>You can now upload PDFs, keep them private for review, and publish them into the public library.</p></div>
       <div class="upload-callout">
-        <div><h2>📤 Upload a PDF paper</h2><p>Use the button to open your file picker. After publishing, a free Science Paper 1 will appear in the Science section and can be downloaded on another phone.</p></div>
+        <div><h2>📤 Upload a PDF paper</h2><p>Choose a Science Paper 1 or Paper 2 upload. Once approved and published, it appears automatically in the matching Science collection for visitors to open and download.</p></div>
         <div class="upload-actions">
           <button id="quick-upload" class="button gold" type="button">Upload PDF now</button>
-          <button id="science-preset" class="button secondary" type="button">Test with Science Paper 1</button>
+          <button id="science-preset" class="button secondary" type="button">Upload Science Paper 1</button>
+          <button id="science-2-preset" class="button secondary" type="button">Upload Science Paper 2</button>
         </div>
       </div>
       <div class="tabs" role="tablist" aria-label="Choose a management area">
@@ -133,6 +134,14 @@
               <label>Examination year <strong>(required for past papers)</strong><input id="exam-year" name="exam_year" type="number" min="1990" max="2100" placeholder="e.g. 2011" inputmode="numeric" aria-describedby="year-detection"></label>
               <div class="wide year-detection" id="year-detection" role="status" aria-live="polite">When you choose a PDF, I'll check its opening pages for the exam year. Please verify the detected year against the paper before publishing. Scanned documents may need manual entry.</div>
               <label>Paper number<input name="paper_number" placeholder="e.g. Paper 1"></label>
+              <label id="science-paper-selector-wrap" class="wide" hidden>Science paper collection (required for Science past papers)
+                <select id="science-paper-selector" aria-describedby="science-paper-help">
+                  <option value="">Select Paper 1 or Paper 2</option>
+                  <option value="Paper 1">Science Paper 1</option>
+                  <option value="Paper 2">Science Paper 2</option>
+                </select>
+                <span id="science-paper-help" class="hint">The selected collection decides which public Science page will show this paper. Review the examination cover before selecting it.</span>
+              </label>
               <label>Resource type<select name="content_type"><option>Past paper</option><option>Test / assessment</option><option>Revision notes</option><option>Worked questions</option><option>Lesson plan</option><option>Weekly forecast</option><option>Scheme of work</option></select></label>
               <label>Access<select name="access_type"><option value="free">Free download</option><option value="paid">Paid / enquiry only for now</option></select></label>
               <label>Price in ZMW (paid only)<input name="price_zmw" type="number" min="0" step="0.01" value="0"></label>
