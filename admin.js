@@ -9,6 +9,44 @@
  let cache = {materials:[],posts:[],links:[]};
  const filesBucket = "zambright-materials";
 
+ // Read the first page of a text-based exam PDF. If the year is ambiguous, ask for a manual check.
+ async function detectExamYear(file){
+   function findYears(text){
+     return [...new Set([...String(text).matchAll(/\b(?:19[89]\d|20[0-3]\d)\b/g)]
+       .map(match=>Number(match[0])).filter(year=>year<=new Date().getFullYear()+1))];
+   }
+   const fileYears=findYears(file.name.replace(/[_-]/g," "));
+   if(!window.pdfjsLib){
+     return fileYears.length===1 ? {year:fileYears[0],source:"filename"} : {year:null,reason:"Automatic PDF reading is unavailable. Enter the examination year manually."};
+   }
+   try {
+     window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+     const task=window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())});
+     let pdf;
+     try{
+       pdf=await task.promise;
+       const page=await pdf.getPage(1);
+       const text=await page.getTextContent();
+       const coverYears=findYears(text.items.map(item=>item.str||"").join(" "));
+       if(coverYears.length>1)return {year:null,reason:"Several years appear on the cover. Enter the actual examination year yourself."};
+       if(coverYears.length===1)return {year:coverYears[0],source:"PDF cover"};
+       if(fileYears.length===1)return {year:fileYears[0],source:"filename"};
+       return {year:null,reason:"No readable year found on the PDF cover. Scanned papers may need manual entry."};
+     }finally{
+       if(pdf)await pdf.destroy().catch(()=>{});
+       else await task.destroy().catch(()=>{});
+     }
+   }catch(error){
+     console.warn("Could not read PDF examination year",error);
+     return fileYears.length===1?{year:fileYears[0],source:"filename"}:{year:null,reason:"Could not read the PDF year. Enter the examination year manually."};
+   }
+ }
+ function yearFeedback(message,warning){
+   const node=$("year-detection");if(!node)return;
+   node.textContent=message;node.classList.toggle("warning",Boolean(warning));
+ }
+
+
  function notify(text, type) {
    message.textContent = text;
    message.className = "status" + (type === "error" ? " error" : type === "ok" ? " ok" : "");
@@ -25,7 +63,7 @@
  function safe(s){return s == null ? "" : String(s);}
  function field(form, name){return form.elements.namedItem(name);}
  function val(form,name){return safe(field(form,name).value).trim();}
- function clean(form){form.reset();if(field(form,"id"))field(form,"id").value="";if(field(form,"storage_path"))field(form,"storage_path").value="";if(form.id==="material-form" && $("chosen-pdf"))$("chosen-pdf").textContent="No PDF selected yet. Tap Choose File to select your PDF.";}
+ function clean(form){form.reset();if(field(form,"id"))field(form,"id").value="";if(field(form,"storage_path"))field(form,"storage_path").value="";if(form.id==="material-form" && $("chosen-pdf")){$("chosen-pdf").textContent="No PDF selected yet. Tap Choose File to select your PDF.";yearFeedback("Choose a PDF to look for its examination year, or enter the year manually.",false);}}
  function renderTag(name,content,cls){const e=document.createElement(name);if(content!==undefined)e.textContent=safe(content);if(cls)e.className=cls;return e;}
  function setBusy(form,busy){const b=form.querySelector('[type="submit"]');b.disabled=busy;b.textContent=busy?"Saving…":b.dataset.originalLabel||"Save";}
  function setBusyName(form){const b=form.querySelector('[type="submit"]');b.dataset.originalLabel=b.textContent;}
@@ -78,9 +116,18 @@
  }
  function drawRecords(kind,targetId){
    const holder=$(targetId);holder.replaceChildren();
-   const rows=cache[kind]||[];
+   const rows=(cache[kind]||[]).slice();
+   if(kind==="materials")rows.sort((a,b)=>(Number(b.exam_year)||0)-(Number(a.exam_year)||0)||String(a.subject).localeCompare(String(b.subject))||String(a.title).localeCompare(String(b.title)));
    if(!rows.length){holder.append(renderTag("p","Nothing saved here yet. Create your first "+(kind==="materials"?"paper":kind==="posts"?"article":"link")+" above."));return;}
+   let lastYear=null;
    rows.forEach(function(row){
+     if(kind==="materials"){
+       const y=row.exam_year?String(row.exam_year):"Missing year";
+       if(y!==lastYear){
+         holder.append(renderTag("h3",row.exam_year?"Examination year "+y:"Year not yet recorded","form-subhead"));
+         lastYear=y;
+       }
+     }
      const container=renderTag("article",undefined,"entry");
      const top=renderTag("h3",row.title || row.name);
      top.append(renderTag("span",row.status==="published"?"Published — visible to visitors":row.status==="review"?"Under review — PRIVATE":"Draft — PRIVATE, not on website","badge"));
@@ -140,6 +187,7 @@
    if(kind==="materials"){
      ["branding_checked","page_order_checked","diagrams_checked","answers_checked"].forEach(k=>field(form,k).checked=Boolean(row[k]));
      publishMessage(row.status==="published"?"This paper is already published. Save to update it.":"This paper is still PRIVATE. Review it, check all four items, select Published, and press Save or Publish PDF.",null,false);
+     yearFeedback(row.exam_year?"Saved examination year: "+row.exam_year+". You may correct it by editing the year field.":"No examination year is saved for this paper. Please enter the correct year from its cover.",!row.exam_year);
    }
    if(kind==="links")field(form,"is_affiliate").value=row.is_affiliate?"yes":"no";
    form.scrollIntoView({behavior:"smooth",block:"start"});
@@ -169,6 +217,11 @@
    if(file && file.size>50*1024*1024){notify("This file exceeds the 50 MB upload limit.","error");return;}
    const status=val(form,"status"),access=val(form,"access_type"),price=Number(val(form,"price_zmw")||0);
    const checks=["branding_checked","page_order_checked","diagrams_checked","answers_checked"];
+   const yearRaw=val(form,"exam_year");
+   if(status==="published" && val(form,"content_type")==="Past paper" && !yearRaw){
+     const msg="Enter the examination year shown on the PDF (for example 2011). A past paper cannot be published without its year.";
+     notify(msg,"error");publishMessage(msg,"error",true);yearFeedback(msg,true);return;
+   }
    if(status==="published"&&!checks.every(k=>field(form,k).checked)){
      const missing=checks.filter(k=>!field(form,k).checked).map(k=>field(form,k).parentElement.textContent.trim());
      const msg="NOT PUBLISHED: Check these items after reviewing your PDF: "+missing.join("; ")+". Then press Save or Publish PDF.";
@@ -272,9 +325,29 @@
    document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
    document.querySelectorAll("[data-go-tab]").forEach(b=>b.addEventListener("click",()=>{showTab(b.dataset.goTab);window.scrollTo({top:0,behavior:"smooth"});}));
    const pdfInput=$("pdf-file"), uploadedStatus=$("chosen-pdf"), uploadPanel=$("upload-panel");
-   if(pdfInput)pdfInput.addEventListener("change",()=>{
+   let latestSelection=0;
+   if(pdfInput)pdfInput.addEventListener("change",async ()=>{
      const file=pdfInput.files && pdfInput.files[0];
+     const selection=++latestSelection;
      uploadedStatus.textContent=file ? "Selected: "+file.name+" ("+(file.size/1024/1024).toFixed(2)+" MB). Complete steps 2 and 3 below." : "No PDF selected yet.";
+     if(!file){yearFeedback("Choose a PDF, or type the examination year manually.",false);return;}
+     if(!(file.type==="application/pdf" || /\.pdf$/i.test(file.name))){yearFeedback("Only PDF files are supported.",true);return;}
+     yearFeedback("Checking the first page for its examination year…",false);
+     const previousYear=val($("material-form"),"exam_year");
+     const result=await detectExamYear(file);
+     if(selection!==latestSelection)return;
+     if(result.year){
+       if(!previousYear && !val($("material-form"),"exam_year")){
+         field($("material-form"),"exam_year").value=String(result.year);
+         yearFeedback("Detected "+result.year+" from the "+result.source+". Please verify it against the exam cover before publishing.",false);
+       }else{
+         yearFeedback("Detected "+result.year+" from the "+result.source+". Your existing year entry was kept — verify which is correct.",false);
+       }
+     }else yearFeedback(result.reason,true);
+   });
+   const yearInput=field($("material-form"),"exam_year");
+   yearInput.addEventListener("input",function(){
+     if(this.value)yearFeedback("Examination year set to "+this.value+". Please confirm this matches the cover before publishing.",false);
    });
    function openUploader(openFilePicker){
      showTab("materials");
