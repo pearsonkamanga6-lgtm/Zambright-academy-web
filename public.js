@@ -121,8 +121,25 @@
       card.append(link);holder.append(card);
     });
   }
+  async function revealOwnerToolbar(){
+    try {
+      const userResult=await client.auth.getUser();
+      const user=userResult.data && userResult.data.user;
+      if(!user)return;
+      const membership=await client.from("zambright_admins").select("user_id").eq("user_id",user.id).maybeSingle();
+      if(membership.data && !membership.error){
+        const toolbar=document.getElementById("owner-toolbar");
+        if(toolbar)toolbar.hidden=false;
+      }
+    }catch(error){console.warn("Owner toolbar unavailable",error);}
+  }
   async function init(){
     bindFilters();
+    const requestedSubject=new URLSearchParams(window.location.search).get("subject");
+    if(requestedSubject && Array.from(subject.options).some(function(option){return option.value===requestedSubject;})){
+      subject.value=requestedSubject;
+    }
+    revealOwnerToolbar();
     try {
       const [a,b,c] = await Promise.all([
         client.from("zambright_materials").select("id,title,subject,grade,topic,exam_year,paper_number,content_type,description,access_type,price_zmw,storage_path,status").eq("status","published").order("created_at",{ascending:false}).limit(300),
