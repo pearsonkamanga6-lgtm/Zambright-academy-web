@@ -21,16 +21,31 @@
     .status{padding:11px 15px;border-radius:10px;background:#edf4ff;border:1px solid #bfceed;margin:15px 0;white-space:pre-wrap;font-size:13px}.status.error{background:#fff1f0;color:#8f2626;border-color:#eab8b5}.status.ok{background:#effaf1;color:#256c35;border-color:#b8e1bc}
     .entry{border-top:1px solid var(--border);padding:16px 0}.entry:first-child{border-top:0}.entry h3{margin:0;color:var(--deep);font-size:17px}.entry p{margin:6px 0;font-size:13px}.entry .meta{color:var(--muted)}.entry .buttons{margin-top:10px}.entry .button{padding:8px 12px;min-height:36px;font-size:12px}
     .badge{display:inline-block;font-size:11px;font-weight:bold;border:1px solid #bbc9e2;border-radius:20px;padding:2px 8px;margin-left:8px;background:#f4f7fc}.toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center}
-    @media(max-width:680px){.fields{grid-template-columns:1fr}.top{min-height:77px}.logo{width:100px}.intro h1{font-size:24px}.panel{padding:18px}.toolbar{align-items:flex-start;flex-direction:column}}
+    .tinybar{background:var(--deep);color:#e9effc;font-size:12px;padding:9px 0}.tinybar strong{color:var(--gold)}
+    .site-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-weight:700;font-size:13px}
+    .site-nav a{text-decoration:none;color:var(--navy)}.site-nav a:hover{text-decoration:underline}
+    .workspace-chip{padding:8px 13px;background:var(--pale);border:1px solid #b5cae9;border-radius:50px;color:var(--navy);font-size:12px;font-weight:800}
+    .dashboard-hero{background:linear-gradient(110deg,#061e4a,#082d73);color:#fff;border-radius:17px;padding:28px 30px;margin-bottom:22px}
+    .dashboard-hero h2{color:#fff;font-size:24px;margin:0 0 5px}.dashboard-hero p{color:#dce8ff;margin:0;font-size:14px}
+    .preview-shell{border:1px solid var(--border);border-radius:13px;background:white;overflow:hidden}
+    .preview-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+    .preview-toolbar small{display:block;color:var(--muted)}
+    .preview-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .preview-iframe{width:100%;height:710px;display:block;border:0;background:white}
+    .quick-actions{display:flex;gap:11px;flex-wrap:wrap;margin:18px 0}
+    .publishing-flow{background:var(--pale);border-radius:10px;padding:14px 18px;margin-top:17px;color:#294b78;font-size:13px}
+    .publishing-flow strong{color:var(--navy)}
+    @media(max-width:680px){.fields{grid-template-columns:1fr}.top{min-height:77px}.logo{width:100px}.intro h1{font-size:24px}.panel{padding:18px}.toolbar{align-items:flex-start;flex-direction:column}.site-nav{gap:8px;font-size:12px}.site-nav .secondary-site-link{display:none}.dashboard-hero{padding:20px}.preview-iframe{height:580px}.top{gap:10px}}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script defer src="site-config.js"></script>
   <script defer src="admin.js"></script>
 </head>
 <body>
-  <header><div class="wrap top"><a href="index.html" aria-label="Return to ZamBright Academy"><img class="logo" src="assets/zambright-logo.png" alt="ZamBright Academy"></a><a class="navitem" href="index.html">← Public website</a></div></header>
+  <div class="tinybar"><div class="wrap">🇿🇲 Made for Zambian learners and teachers · <strong>Administrator workspace</strong></div></div>
+  <header><div class="wrap top"><a href="index.html" aria-label="Return to ZamBright Academy"><img class="logo" src="assets/zambright-logo.png" alt="ZamBright Academy"></a><nav class="site-nav" aria-label="Public website links"><a href="index.html#subjects" class="secondary-site-link">Subjects</a><a href="index.html#library">Past Papers</a><a href="index.html#teachers" class="secondary-site-link">Teachers</a><a href="index.html#articles" class="secondary-site-link">Articles</a><span class="workspace-chip">🔒 Owner mode</span></nav></div></header>
   <main class="wrap">
-    <div class="intro"><div><h1>Owner dashboard</h1><p>Manage teaching materials, articles and approved partner links.</p></div><button id="sign-out" type="button" class="button secondary hidden">Sign out</button></div>
+    <div class="intro"><div><h1>ZamBright Academy — Owner dashboard</h1><p>Preview the public website and manage your library from one place.</p></div><button id="sign-out" type="button" class="button secondary hidden">Sign out</button></div>
     <div id="setup" class="panel hidden"><h2>Finish the secure owner setup</h2><p>This website is ready for a Supabase database and owner account, but they have not yet been connected. Only you should run the secure setup in your own Supabase dashboard.</p><p>See the <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">Supabase dashboard</a> and the repository file <code>setup/README.md</code>. Never paste a secret key into the website.</p></div>
     <section id="login-panel" class="panel hidden" aria-labelledby="login-title">
       <h2 id="login-title">Owner sign-in</h2><p>Use your authorised ZamBright Academy account. Visitors cannot gain publishing privileges by signing in.</p>
@@ -42,12 +57,35 @@
     <div id="message" role="status" aria-live="polite" class="status hidden"></div>
     <section id="dashboard" class="hidden">
       <div class="panel"><strong>Signed in as:</strong> <span id="admin-email"></span><p class="hint">Only approved, published materials are shown on the public site. Your draft PDFs are private. Paid downloads are not automatically enabled until a verified Mobile Money checkout is connected.</p></div>
+      <div class="dashboard-hero"><h2>Welcome to your ZamBright Academy workspace</h2><p>The website preview below shows what visitors can see. Only you have the publishing controls.</p></div>
       <div class="tabs" role="tablist" aria-label="Choose a management area">
-        <button type="button" class="tab" data-tab="materials" aria-selected="true">📄 Past papers & PDFs</button>
+        <button type="button" class="tab" data-tab="preview" aria-selected="true">🏠 Website preview</button>
+        <button type="button" class="tab" data-tab="materials" aria-selected="false">📄 Past papers & PDFs</button>
         <button type="button" class="tab" data-tab="posts" aria-selected="false">✍️ Articles & blog</button>
         <button type="button" class="tab" data-tab="links" aria-selected="false">🔗 Affiliate links</button>
       </div>
-      <section id="tab-materials" class="tab-page">
+      <section id="tab-preview" class="tab-page">
+        <div class="panel">
+          <h2>See your public website while you manage it</h2>
+          <p>Below is the real ZamBright Academy homepage, not a mock-up. You can browse it here to check the published papers, articles and subject filters.</p>
+          <div class="quick-actions">
+            <button class="button gold" type="button" data-go-tab="materials">+ Upload a past paper</button>
+            <button class="button secondary" type="button" data-go-tab="posts">+ Write an article</button>
+            <button class="button secondary" type="button" data-go-tab="links">+ Add a partner link</button>
+          </div>
+          <div class="preview-shell">
+            <div class="preview-toolbar"><div><strong>Live website preview</strong><small>Public view — visitors do not see your owner controls</small></div>
+              <div class="preview-actions">
+                <button type="button" class="button secondary" id="refresh-preview">↻ Refresh preview</button>
+                <a class="button secondary" href="index.html" target="_blank" rel="noopener noreferrer">Open public site ↗</a>
+              </div>
+            </div>
+            <iframe class="preview-iframe" id="site-preview" title="ZamBright Academy public homepage preview" src="index.html" loading="lazy"></iframe>
+          </div>
+          <div class="publishing-flow"><strong>Publishing workflow:</strong> Upload PDF → Save as Draft → Review page order, answers and diagrams → Publish. Only published files are visible to the public. Free published PDFs can be downloaded; paid items show an enquiry button until Mobile Money checkout is ready.</div>
+        </div>
+      </section>
+      <section id="tab-materials" class="tab-page hidden">
         <div class="panel"><h2>Upload or edit a resource</h2><p class="hint">Choose a PDF, describe it and save as a draft. Only publish after completing the quality checklist. Maximum PDF size: 50 MB on the free Supabase plan.</p>
           <form id="material-form">
             <input type="hidden" name="id"><input type="hidden" name="storage_path">
