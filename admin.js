@@ -17,7 +17,7 @@
  function safe(s){return s == null ? "" : String(s);}
  function field(form, name){return form.elements.namedItem(name);}
  function val(form,name){return safe(field(form,name).value).trim();}
- function clean(form){form.reset();if(field(form,"id"))field(form,"id").value="";if(field(form,"storage_path"))field(form,"storage_path").value="";}
+ function clean(form){form.reset();if(field(form,"id"))field(form,"id").value="";if(field(form,"storage_path"))field(form,"storage_path").value="";if(form.id==="material-form" && $("chosen-pdf"))$("chosen-pdf").textContent="No PDF selected yet. Tap Choose File to select your PDF.";}
  function renderTag(name,content,cls){const e=document.createElement(name);if(content!==undefined)e.textContent=safe(content);if(cls)e.className=cls;return e;}
  function setBusy(form,busy){const b=form.querySelector('[type="submit"]');b.disabled=busy;b.textContent=busy?"Saving…":b.dataset.originalLabel||"Save";}
  function setBusyName(form){const b=form.querySelector('[type="submit"]');b.dataset.originalLabel=b.textContent;}
@@ -46,7 +46,8 @@
      loginPanel.classList.add("hidden");
      dashboard.classList.remove("hidden");
      signOut.classList.remove("hidden");
-     notify("Owner access verified. Your drafts and uploads are private.","ok");
+     showTab("materials");
+     notify("Owner access verified. Select your PDF in STEP 1 below, then choose its subject and publishing status.","ok");
      await Promise.all([loadRecords("materials"),loadRecords("posts"),loadRecords("links")]);
    } else {
      dashboard.classList.add("hidden");
@@ -164,7 +165,14 @@
        const removal=await client.storage.from(filesBucket).remove([storagePath]);
        if(removal.error)console.warn("Old PDF needs storage cleanup",removal.error);
      }
-     clean(form);notify("Resource saved as "+status+". It will "+(status==="published"?"appear in the public library.":"remain private.") ,"ok");
+     clean(form);notify("Resource saved as "+status+". It will "+(status==="published"?"appear in the public library under "+data.subject+".":"remain private until you publish it.") ,"ok");
+     if(status==="published"){
+       const siteLink=renderTag("a"," View "+data.subject+" on public website ↗");
+       siteLink.href="index.html?subject="+encodeURIComponent(data.subject)+"#library";
+       siteLink.target="_blank";siteLink.rel="noopener noreferrer";
+       siteLink.style.display="inline-block";siteLink.style.marginTop="6px";siteLink.style.fontWeight="bold";
+       message.append(siteLink);
+     }
      await loadRecords("materials");
      if(status==="published"){const preview=$("site-preview");if(preview)preview.src="index.html#library";}
    }catch(e){
@@ -216,6 +224,31 @@
    });
    document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
    document.querySelectorAll("[data-go-tab]").forEach(b=>b.addEventListener("click",()=>{showTab(b.dataset.goTab);window.scrollTo({top:0,behavior:"smooth"});}));
+   const pdfInput=$("pdf-file"), uploadedStatus=$("chosen-pdf"), uploadPanel=$("upload-panel");
+   if(pdfInput)pdfInput.addEventListener("change",()=>{
+     const file=pdfInput.files && pdfInput.files[0];
+     uploadedStatus.textContent=file ? "Selected: "+file.name+" ("+(file.size/1024/1024).toFixed(2)+" MB). Complete steps 2 and 3 below." : "No PDF selected yet.";
+   });
+   function openUploader(openFilePicker){
+     showTab("materials");
+     uploadPanel.scrollIntoView({behavior:"smooth",block:"start"});
+     if(openFilePicker && pdfInput)pdfInput.click();
+   }
+   const quickUpload=$("quick-upload");
+   if(quickUpload)quickUpload.addEventListener("click",()=>openUploader(true));
+   const sciencePreset=$("science-preset");
+   if(sciencePreset)sciencePreset.addEventListener("click",()=>{
+     clean($("material-form"));
+     const form=$("material-form");
+     field(form,"title").value="Science Paper 1";
+     field(form,"subject").value="Science";
+     field(form,"paper_number").value="Paper 1";
+     field(form,"content_type").value="Past paper";
+     field(form,"access_type").value="free";
+     field(form,"status").value="draft";
+     notify("Science Paper 1 is selected. Choose the PDF file, enter the actual grade and year, then save it as a draft or publish after reviewing the checklist.");
+     openUploader(true);
+   });
    const refreshPreview=$("refresh-preview");
    if(refreshPreview)refreshPreview.addEventListener("click",()=>{const iframe=$("site-preview");if(iframe)iframe.src="index.html";});
    document.querySelectorAll("[data-refresh]").forEach(b=>b.addEventListener("click",()=>loadRecords(b.dataset.refresh)));
@@ -225,6 +258,7 @@
    $("material-clear").addEventListener("click",()=>clean($("material-form")));
    $("post-clear").addEventListener("click",()=>clean($("post-form")));
    $("link-clear").addEventListener("click",()=>clean($("link-form")));
+   if(window.location.hash==="#upload")showTab("materials");
    const session=await client.auth.getSession();
    if(session.error){sayError(session.error);loginPanel.classList.remove("hidden");return;}
    if(session.data.session){
