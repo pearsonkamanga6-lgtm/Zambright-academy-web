@@ -166,6 +166,7 @@
      }
      clean(form);notify("Resource saved as "+status+". It will "+(status==="published"?"appear in the public library.":"remain private.") ,"ok");
      await loadRecords("materials");
+     if(status==="published"){const preview=$("site-preview");if(preview)preview.src="index.html#library";}
    }catch(e){
      if(newPath){await client.storage.from(filesBucket).remove([newPath]).catch(()=>{});}
      sayError(e);
@@ -214,6 +215,9 @@
      notify("Signed out.");
    });
    document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+   document.querySelectorAll("[data-go-tab]").forEach(b=>b.addEventListener("click",()=>{showTab(b.dataset.goTab);window.scrollTo({top:0,behavior:"smooth"});}));
+   const refreshPreview=$("refresh-preview");
+   if(refreshPreview)refreshPreview.addEventListener("click",()=>{const iframe=$("site-preview");if(iframe)iframe.src="index.html";});
    document.querySelectorAll("[data-refresh]").forEach(b=>b.addEventListener("click",()=>loadRecords(b.dataset.refresh)));
    $("material-form").addEventListener("submit",saveMaterial);
    $("post-form").addEventListener("submit",savePost);
