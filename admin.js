@@ -14,6 +14,14 @@
    message.className = "status" + (type === "error" ? " error" : type === "ok" ? " ok" : "");
  }
  function sayError(error){notify(error && error.message ? error.message : String(error),"error");}
+ function publishMessage(message,kind,scroll){
+   const box=$("publish-feedback");if(!box)return;
+   box.replaceChildren();
+   if(!message){box.hidden=true;return;}
+   box.hidden=false;box.className="publish-feedback"+(kind?" "+kind:"");
+   box.textContent=message;
+   if(scroll)box.scrollIntoView({behavior:"smooth",block:"center"});
+ }
  function safe(s){return s == null ? "" : String(s);}
  function field(form, name){return form.elements.namedItem(name);}
  function val(form,name){return safe(field(form,name).value).trim();}
@@ -94,9 +102,9 @@
          publish.addEventListener("click",function(){
            editRecord("materials",row);
            field($("material-form"),"status").value="published";
-           notify("This paper is currently PRIVATE. Review the four quality checks, confirm the details and click Save or Publish PDF. It will then appear automatically in the public "+row.subject+" library.");
+           notify("This paper is still PRIVATE. Select Published, check the four review items, then click Save or Publish PDF.");
            const checks=$("material-form").querySelector(".checks");
-           if(checks)checks.scrollIntoView({behavior:"smooth",block:"center"});
+           publishMessage("NOT PUBLISHED YET: Review the PDF, tick the four quality checks after verifying them, and then press Save or Publish PDF. The Review & Publish button only opens the publishing form.",null,true);
          });
          actions.append(publish);
        }else{
@@ -129,7 +137,10 @@
    const common=kind==="materials" ? ["id","title","subject","grade","topic","exam_year","paper_number","content_type","access_type","price_zmw","status","storage_path","description"] :
      kind==="posts"?["id","title","category","body","status"]:["id","name","url","category","status","description"];
    common.forEach(function(k){const f=field(form,k);if(f)f.value = row[k] === null ? "" : row[k];});
-   if(kind==="materials")["branding_checked","page_order_checked","diagrams_checked","answers_checked"].forEach(k=>field(form,k).checked=Boolean(row[k]));
+   if(kind==="materials"){
+     ["branding_checked","page_order_checked","diagrams_checked","answers_checked"].forEach(k=>field(form,k).checked=Boolean(row[k]));
+     publishMessage(row.status==="published"?"This paper is already published. Save to update it.":"This paper is still PRIVATE. Review it, check all four items, select Published, and press Save or Publish PDF.",null,false);
+   }
    if(kind==="links")field(form,"is_affiliate").value=row.is_affiliate?"yes":"no";
    form.scrollIntoView({behavior:"smooth",block:"start"});
    notify("Editing: "+(row.title||row.name)+(kind==="materials"&&row.status!=="published" ? ". This paper is PRIVATE. Select Published, finish the four review checks, then Save or Publish PDF to make it appear on the website." : ". Save changes when ready."));
@@ -158,9 +169,13 @@
    if(file && file.size>50*1024*1024){notify("This file exceeds the 50 MB upload limit.","error");return;}
    const status=val(form,"status"),access=val(form,"access_type"),price=Number(val(form,"price_zmw")||0);
    const checks=["branding_checked","page_order_checked","diagrams_checked","answers_checked"];
-   if(status==="published"&&!checks.every(k=>field(form,k).checked)){notify("Complete all four review checks before publishing.","error");return;}
+   if(status==="published"&&!checks.every(k=>field(form,k).checked)){
+     const missing=checks.filter(k=>!field(form,k).checked).map(k=>field(form,k).parentElement.textContent.trim());
+     const msg="NOT PUBLISHED: Check these items after reviewing your PDF: "+missing.join("; ")+". Then press Save or Publish PDF.";
+     notify(msg,"error");publishMessage(msg,"error",true);return;
+   }
    if(access==="paid" && !(price>0)){notify("Enter a valid price greater than K0 for paid materials.","error");return;}
-   if(status==="published"&&!window.confirm("Publish this resource to the public website now?"))return;
+   if(status==="published"&&!window.confirm("Publish this reviewed paper to the public website now?")){publishMessage("Publication cancelled. The paper is still private.","error",true);return;}
    const data={
      title:val(form,"title"),subject:val(form,"subject"),grade:val(form,"grade"),topic:val(form,"topic"),
      exam_year:val(form,"exam_year")?Number(val(form,"exam_year")):null,
@@ -194,10 +209,22 @@
        message.append(siteLink);
      }
      await loadRecords("materials");
+     publishMessage(status==="published"?"SUCCESS: "+data.title+" is published to the public "+data.subject+" library.":"Saved as a private draft. Visitors cannot see it yet.","ok",true);
+     if(status==="published"){
+       const target=$("publish-feedback");
+       if(target){
+         const link=document.createElement("a");
+         link.href="index.html?subject="+encodeURIComponent(data.subject)+"#library";
+         link.target="_blank";link.rel="noopener noreferrer";
+         link.textContent=" Open the public "+data.subject+" library ↗";
+         target.append(document.createElement("br"),link);
+       }
+     }
      if(status==="published"){const preview=$("site-preview");if(preview)preview.src="index.html#library";}
    }catch(e){
      if(newPath){await client.storage.from(filesBucket).remove([newPath]).catch(()=>{});}
      sayError(e);
+     publishMessage("Save failed: "+(e && e.message ? e.message : String(e))+". The paper has not been published.","error",true);
    }finally{setBusy(form,false);}
  }
  async function savePost(e){
@@ -273,6 +300,9 @@
    if(refreshPreview)refreshPreview.addEventListener("click",()=>{const iframe=$("site-preview");if(iframe)iframe.src="index.html";});
    document.querySelectorAll("[data-refresh]").forEach(b=>b.addEventListener("click",()=>loadRecords(b.dataset.refresh)));
    $("material-form").addEventListener("submit",saveMaterial);
+   field($("material-form"),"status").addEventListener("change",function(){
+     publishMessage(this.value==="published"?"Published is selected, but you must review and tick all four checklist items, then click Save or Publish PDF.":"This paper will stay private until you select Published and save.",null,false);
+   });
    $("post-form").addEventListener("submit",savePost);
    $("link-form").addEventListener("submit",saveLink);
    $("material-clear").addEventListener("click",()=>clean($("material-form")));
