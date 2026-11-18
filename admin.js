@@ -241,7 +241,8 @@
    setBusy(form,true);
    try{
      if(file){
-       newPath="papers/"+crypto.randomUUID()+".pdf";
+       const folder=String(data.subject).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"other";
+       newPath="papers/"+folder+"/"+(data.exam_year||"year-pending")+"/"+crypto.randomUUID()+".pdf";
        const upload=await client.storage.from(filesBucket).upload(newPath,file,{contentType:"application/pdf",upsert:false});
        if(upload.error)throw upload.error;
        data.storage_path=newPath;
