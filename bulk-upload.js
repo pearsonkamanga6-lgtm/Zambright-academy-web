@@ -377,7 +377,7 @@ async function startUpload(){
      };
      const saved=await client.from("zambright_materials").insert(row).select("id").single();
      if(saved.error)throw saved.error;
-     item.savedId=saved.data.id;item.status="saved";item.file=null;completed++;
+     item.savedId=saved.data.id;item.status="saved";completed++;
      existing.push({...row,id:item.savedId});
      storagePath="";
    }catch(err){
