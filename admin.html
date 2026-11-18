@@ -35,6 +35,14 @@
     .quick-actions{display:flex;gap:11px;flex-wrap:wrap;margin:18px 0}
     .publishing-flow{background:var(--pale);border-radius:10px;padding:14px 18px;margin-top:17px;color:#294b78;font-size:13px}
     .publishing-flow strong{color:var(--navy)}
+    .upload-callout{background:#fff7df;border:1px solid #e8d092;border-radius:16px;padding:23px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+    .upload-callout h2{margin:0 0 7px;color:var(--deep);font-size:23px}.upload-callout p{color:#5b5a54;font-size:14px;margin:0;max-width:630px}
+    .upload-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .upload-step{border:2px dashed #8faedb;background:#edf4ff;padding:20px;border-radius:13px;margin-bottom:20px}
+    .upload-step label{font-size:17px;color:var(--navy)}
+    .upload-step input{background:#fff;border:1px solid #a6bfe0;padding:11px;margin-top:12px}
+    .upload-step .file-hint{font-size:13px;color:#4f6685;margin:9px 0 0}
+    .form-subhead{font-size:17px;color:var(--navy);margin:18px 0 12px}
     @media(max-width:680px){.fields{grid-template-columns:1fr}.top{min-height:77px}.logo{width:100px}.intro h1{font-size:24px}.panel{padding:18px}.toolbar{align-items:flex-start;flex-direction:column}.site-nav{gap:8px;font-size:12px}.site-nav .secondary-site-link{display:none}.dashboard-hero{padding:20px}.preview-iframe{height:580px}.top{gap:10px}}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -57,14 +65,21 @@
     <div id="message" role="status" aria-live="polite" class="status hidden"></div>
     <section id="dashboard" class="hidden">
       <div class="panel"><strong>Signed in as:</strong> <span id="admin-email"></span><p class="hint">Only approved, published materials are shown on the public site. Your draft PDFs are private. Paid downloads are not automatically enabled until a verified Mobile Money checkout is connected.</p></div>
-      <div class="dashboard-hero"><h2>Welcome to your ZamBright Academy workspace</h2><p>The website preview below shows what visitors can see. Only you have the publishing controls.</p></div>
+      <div class="dashboard-hero"><h2>Welcome to your ZamBright Academy workspace</h2><p>You can now upload PDFs, keep them private for review, and publish them into the public library.</p></div>
+      <div class="upload-callout">
+        <div><h2>📤 Upload a PDF paper</h2><p>Use the button to open your file picker. After publishing, a free Science Paper 1 will appear in the Science section and can be downloaded on another phone.</p></div>
+        <div class="upload-actions">
+          <button id="quick-upload" class="button gold" type="button">Upload PDF now</button>
+          <button id="science-preset" class="button secondary" type="button">Test with Science Paper 1</button>
+        </div>
+      </div>
       <div class="tabs" role="tablist" aria-label="Choose a management area">
-        <button type="button" class="tab" data-tab="preview" aria-selected="true">🏠 Website preview</button>
-        <button type="button" class="tab" data-tab="materials" aria-selected="false">📄 Past papers & PDFs</button>
+        <button type="button" class="tab" data-tab="materials" aria-selected="true">📤 Upload & manage PDFs</button>
+        <button type="button" class="tab" data-tab="preview" aria-selected="false">🏠 Website preview</button>
         <button type="button" class="tab" data-tab="posts" aria-selected="false">✍️ Articles & blog</button>
         <button type="button" class="tab" data-tab="links" aria-selected="false">🔗 Affiliate links</button>
       </div>
-      <section id="tab-preview" class="tab-page">
+      <section id="tab-preview" class="tab-page hidden">
         <div class="panel">
           <h2>See your public website while you manage it</h2>
           <p>Below is the real ZamBright Academy homepage, not a mock-up. You can browse it here to check the published papers, articles and subject filters.</p>
@@ -85,10 +100,17 @@
           <div class="publishing-flow"><strong>Publishing workflow:</strong> Upload PDF → Save as Draft → Review page order, answers and diagrams → Publish. Only published files are visible to the public. Free published PDFs can be downloaded; paid items show an enquiry button until Mobile Money checkout is ready.</div>
         </div>
       </section>
-      <section id="tab-materials" class="tab-page hidden">
-        <div class="panel"><h2>Upload or edit a resource</h2><p class="hint">Choose a PDF, describe it and save as a draft. Only publish after completing the quality checklist. Maximum PDF size: 50 MB on the free Supabase plan.</p>
+      <section id="tab-materials" class="tab-page">
+        <div class="panel" id="upload-panel"><h2>Upload or edit a PDF</h2><p class="hint">The file is stored securely in Supabase. After publication, the public website automatically displays it under the subject you select.</p>
           <form id="material-form">
             <input type="hidden" name="id"><input type="hidden" name="storage_path">
+            <div class="upload-step">
+              <label for="pdf-file">STEP 1 — Select the PDF from your phone or computer</label>
+              <input id="pdf-file" name="file" type="file" accept=".pdf,application/pdf" aria-describedby="chosen-pdf file-size-note">
+              <p class="file-hint" id="chosen-pdf" aria-live="polite">No PDF selected yet. Tap “Choose File” to find your Science Paper 1.</p>
+              <p class="file-hint" id="file-size-note">Only PDF files, maximum 50 MB. When editing an existing paper, you may leave this empty to keep the existing PDF.</p>
+            </div>
+            <h3 class="form-subhead">STEP 2 — Tell us where this paper belongs</h3>
             <div class="fields">
               <label class="wide">Resource title<input name="title" placeholder="e.g. Biology 2022 Paper 1" maxlength="180" required></label>
               <label>Subject<select name="subject" required><option>Mathematics</option><option>Science</option><option>Physics</option><option>Biology</option><option>Chemistry</option><option>Civic Education</option><option>Religious Education</option><option>English</option><option>Literature</option></select></label>
@@ -100,16 +122,15 @@
               <label>Access<select name="access_type"><option value="free">Free download</option><option value="paid">Paid / enquiry only for now</option></select></label>
               <label>Price in ZMW (paid only)<input name="price_zmw" type="number" min="0" step="0.01" value="0"></label>
               <label>Publishing status<select name="status"><option value="draft">Draft — private</option><option value="review">Under review — private</option><option value="published">Published — public listing</option></select></label>
-              <label class="wide">PDF file<input name="file" type="file" accept=".pdf,application/pdf"><span class="hint">Required for new resources; optional when editing an existing one.</span></label>
               <label class="wide">Short description<textarea name="description" placeholder="What will learners find in this PDF?"></textarea></label>
             </div>
-            <fieldset class="checks"><legend>Quality review checklist (required to publish)</legend>
+            <h3 class="form-subhead">STEP 3 — Review and publish when ready</h3><fieldset class="checks"><legend>Quality review checklist (required to publish)</legend>
               <label><input type="checkbox" name="branding_checked">ZamBright branding checked</label>
               <label><input type="checkbox" name="page_order_checked">All pages complete and in correct order</label>
               <label><input type="checkbox" name="diagrams_checked">Diagrams checked, or not applicable</label>
               <label><input type="checkbox" name="answers_checked">Answers verified, or not applicable</label>
             </fieldset>
-            <div class="buttons"><button class="button gold" type="submit">Save resource</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
+            <div class="buttons"><button class="button gold" type="submit">Save or Publish PDF</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
           </form>
         </div>
         <div class="panel"><div class="toolbar"><h2>Saved resources</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
