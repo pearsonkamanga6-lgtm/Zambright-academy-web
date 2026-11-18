@@ -43,6 +43,34 @@
     .empty-symbol{font-size:32px}
     @media(max-width:940px){.catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:670px){.catalogue-grid{grid-template-columns:1fr}}
+
+    /* Inline subject browsing: all views remain inside index.html and share its header/footer. */
+    body.zb-browse-mode main > section:not(#browse-workspace){display:none!important}
+    #browse-workspace[hidden],#browse-choices[hidden],#browse-papers[hidden],#browse-general[hidden]{display:none!important}
+    .browse-workspace{min-height:64vh;background:#f8faff;padding:28px 0 70px}
+    .browse-breadcrumb{display:flex;gap:11px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted);margin-bottom:20px}
+    .browse-breadcrumb button{border:0;background:transparent;color:var(--navy);font-weight:800;padding:6px 0;text-decoration:underline;text-underline-offset:3px}
+    .browse-hero{background:linear-gradient(120deg,#061e4a,#082d73);color:white;border-radius:18px;padding:35px 37px;margin-bottom:27px}
+    .browse-hero h1{color:#fff;font-size:clamp(27px,4vw,42px);line-height:1.13;margin:9px 0}
+    .browse-hero p{color:#dfeaff;margin:0;max-width:690px}
+    .browse-hero .kicker{color:#ffe3a4}
+    .browse-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:19px}
+    .browse-choice{border:1px solid var(--border);border-radius:17px;padding:25px;text-align:left;background:white;box-shadow:0 6px 20px #082d730e;display:flex;flex-direction:column;gap:8px;min-height:168px}
+    .browse-choice:hover{border-color:var(--gold);box-shadow:0 11px 30px #082d731c;transform:translateY(-2px)}
+    .browse-choice strong{font-size:24px;color:var(--navy)}
+    .browse-choice span{color:var(--muted);font-size:14px}
+    .browse-choice em{margin-top:auto;font-style:normal;color:#826100;font-weight:800;font-size:13px}
+    .browse-filter{margin:0 0 22px;display:flex;gap:15px;flex-wrap:wrap;justify-content:space-between;align-items:end}
+    .browse-filter label{font-weight:800;color:var(--navy);font-size:13px;flex:1;max-width:470px}
+    .browse-filter input{display:block;width:100%;padding:12px 14px;margin-top:8px;border-radius:9px;border:1px solid #bacde8;background:white;color:var(--ink)}
+    .browse-filter small{color:var(--muted);font-size:13px;font-weight:700}
+    .browse-year{margin:23px 0 33px}
+    .browse-year-heading{font-size:21px;color:var(--navy);border-bottom:2px solid #bbd0ef;padding-bottom:10px;margin-bottom:17px}
+    .browse-empty{border:1px dashed #adbed5;background:#fff;text-align:center;border-radius:14px;padding:32px 22px;color:var(--muted)}
+    .browse-empty strong{display:block;font-size:20px;color:var(--navy);margin-bottom:8px}
+    .browse-workspace .catalogue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media(max-width:890px){.browse-workspace .catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:670px){.browse-workspace{padding:18px 0 52px}.browse-hero{padding:26px 23px}.browse-choices,.browse-workspace .catalogue-grid{grid-template-columns:1fr}.browse-choice{min-height:142px}.browse-choice strong{font-size:21px}}
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script defer src="site-config.js"></script>
@@ -68,6 +96,51 @@
     </div>
   </div>
   <main>
+    <section id="browse-workspace" class="browse-workspace" aria-label="Subject papers and materials" hidden>
+      <div class="wrap">
+        <nav class="browse-breadcrumb" aria-label="Subject navigation">
+          <button type="button" id="browse-home">← All subjects / Home</button>
+          <span aria-hidden="true">›</span>
+          <button type="button" id="browse-back-science" hidden>Science</button>
+          <span id="browse-current" aria-current="page">Science</span>
+        </nav>
+        <div class="browse-hero">
+          <span class="kicker">ZAMBRIGHT ACADEMY DIGITAL LIBRARY</span>
+          <h1 id="browse-title">Science</h1>
+          <p id="browse-description">Choose an examination paper to see all published documents.</p>
+        </div>
+        <div id="browse-choices" class="browse-choices" hidden>
+          <button class="browse-choice" type="button" data-science-paper="1">
+            <strong>📄 Science Paper 1</strong>
+            <span>See all approved Science Paper 1 PDFs, organised by examination year.</span>
+            <em><span id="inline-paper1-count">Loading papers…</span> · View Paper 1 →</em>
+          </button>
+          <button class="browse-choice" type="button" data-science-paper="2">
+            <strong>📝 Science Paper 2</strong>
+            <span>See all approved Science Paper 2 PDFs, organised by examination year.</span>
+            <em><span id="inline-paper2-count">Loading papers…</span> · View Paper 2 →</em>
+          </button>
+        </div>
+        <div id="browse-papers" hidden>
+          <div class="browse-filter">
+            <label for="browse-paper-search">Search papers by year or title
+              <input id="browse-paper-search" type="search" placeholder="e.g. 2011" autocomplete="off">
+            </label>
+            <small id="browse-paper-count" role="status" aria-live="polite">Loading papers…</small>
+          </div>
+          <div id="browse-paper-results" aria-live="polite"></div>
+        </div>
+        <div id="browse-general" hidden>
+          <div class="browse-filter">
+            <label for="browse-general-search">Search this subject by year, title or topic
+              <input id="browse-general-search" type="search" placeholder="e.g. 2024" autocomplete="off">
+            </label>
+            <small id="browse-general-count" role="status" aria-live="polite">Loading materials…</small>
+          </div>
+          <div id="browse-general-results" aria-live="polite"></div>
+        </div>
+      </div>
+    </section>
     <section class="hero" id="home"><div class="wrap hero-grid">
       <div><span class="pill">✦ LEARN BRIGHT. THINK BRIGHT. BE BRIGHT.</span><h1>Learning resources that help Zambia <em>shine brighter.</em></h1>
       <p>Past examination papers, test items, detailed revision notes, worked questions, and classroom resources — organised for pupils and teachers.</p>
@@ -77,7 +150,7 @@
     <section class="section" id="subjects"><div class="wrap"><span class="kicker">Browse by subject</span><h2>Find your subject</h2><p class="desc">Choose a subject to filter the library. Additional subjects and resources will appear as materials are approved and published.</p>
       <div class="subjects">
         <button type="button" class="subject" data-subject="Mathematics"><i>📐</i><strong>Mathematics</strong><small>Questions and solutions →</small></button>
-        <a class="subject" href="science.html" aria-label="Open Science Paper 1 and Paper 2 collections"><i>🔬</i><strong>Science</strong><small>Open Paper 1 or Paper 2 →</small></a>
+        <a class="subject" href="?view=science" data-view-subject="Science" aria-label="Open Science Paper 1 and Paper 2 collections"><i>🔬</i><strong>Science</strong><small>Open Paper 1 or Paper 2 →</small></a>
         <button type="button" class="subject" data-subject="Physics"><i>⚡</i><strong>Physics</strong><small>Physics papers and notes →</small></button>
         <button type="button" class="subject" data-subject="Biology"><i>🧬</i><strong>Biology</strong><small>Examination practice →</small></button>
         <button type="button" class="subject" data-subject="Chemistry"><i>⚗️</i><strong>Chemistry</strong><small>Notes and assessment →</small></button>
@@ -132,7 +205,7 @@
     pupil.addEventListener('click',function(){showAudience('pupil');});
     teacher.addEventListener('click',function(){showAudience('teacher');});
     document.getElementById('reset').addEventListener('click',function(){subject.value='';search.value='';grade.value='';type.value='';});
-    document.querySelectorAll('[data-subject]').forEach(function(b){b.addEventListener('click',function(){subject.value=b.getAttribute('data-subject');document.getElementById('library').scrollIntoView({behavior:'smooth'});});});
+    // Subject cards are handled by public.js and display their resources in the same website without scrolling to the old catalogue.
     // The publicly listed resource catalogue is intentionally empty until approved PDFs are actually published.
   </script>
 </body>
