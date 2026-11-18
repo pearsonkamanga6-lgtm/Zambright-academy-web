@@ -21,7 +21,23 @@
     @media(max-width:940px){.hero-grid{grid-template-columns:1fr}.paper{display:none}.subjects{grid-template-columns:repeat(3,1fr)}.filters{grid-template-columns:1fr 1fr}.links{gap:12px}}
     @media(max-width:670px){.tinybar .extra{display:none}.nav{height:90px}.brand-logo{width:116px;max-height:84px}.menu{display:block}.links{display:none;position:absolute;top:90px;left:0;right:0;background:white;padding:20px;flex-direction:column;align-items:stretch;box-shadow:0 20px 25px #082d7322}.links.open{display:flex}.hero{padding:70px 0}.hero h1{font-size:40px}.section{padding:58px 0}.subjects{grid-template-columns:repeat(2,1fr)}.filters,.cards,.packages{grid-template-columns:1fr}.library{padding:19px}.contact{display:block}.contact .btn{margin-top:18px}.footer-top,.bottom{flex-direction:column}}
     @media(max-width:390px){.subjects{grid-template-columns:1fr}.brand{font-size:15px}.brand small{letter-spacing:2px}}
+  
+    .catalogue-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .catalogue-card{background:#fff;border:1px solid var(--border);border-radius:15px;padding:21px;box-shadow:0 5px 20px #082d7309}
+    .catalogue-card h3{margin:10px 0 8px;color:var(--navy);font-size:19px;line-height:1.3}
+    .catalogue-card p{font-size:14px;color:var(--muted);margin:8px 0 15px}
+    .catalogue-card .btn{margin-top:8px}
+    .catalogue-tag{color:var(--navy);background:var(--pale);font-size:11px;font-weight:800;padding:6px 10px;border-radius:99px}
+    .catalogue-meta{font-size:12px!important;color:#5d7399!important}
+    .post-body{white-space:pre-wrap;max-height:280px;overflow:auto}
+    .catalogue-card .disclosure{font-size:12px;color:#766024;background:#fff7df;padding:10px;border-radius:8px}
+    .empty-symbol{font-size:32px}
+    @media(max-width:940px){.catalogue-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:670px){.catalogue-grid{grid-template-columns:1fr}}
   </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script defer src="site-config.js"></script>
+  <script defer src="public.js"></script>
 </head>
 <body>
   <div class="tinybar"><div class="wrap"><span>🇿🇲 Made for Zambian learners and teachers</span><span class="extra">Questions? <b>0973731979</b></span></div></div>
@@ -32,7 +48,7 @@
       </a>
       <button id="menu" class="menu" aria-expanded="false" aria-controls="links" type="button">☰ Menu</button>
       <nav class="links" id="links" aria-label="Main navigation">
-        <a href="#subjects">Subjects</a><a href="#library">Past Papers</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#contact" class="cta">Contact Us</a>
+        <a href="#subjects">Subjects</a><a href="#library">Past Papers</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact" class="cta">Contact Us</a>
       </nav>
     </div>
   </header>
@@ -62,11 +78,10 @@
           <label>Search titles and topics<input id="search" type="search" placeholder="e.g. Biology Paper 1, 2024"></label>
           <label>Subject<select id="subject"><option value="">All subjects</option><option>Mathematics</option><option>Science / Physics</option><option>Biology</option><option>Chemistry</option><option>Civic Education</option><option>Religious Education</option><option>English</option><option>Literature</option></select></label>
           <label>Grade / Form<select id="grade"><option value="">All grades / forms</option><option>Grade 4</option><option>Grade 7</option><option>Form 1</option><option>Form 2</option><option>Grade 10</option><option>Grade 11</option><option>Grade 12</option></select></label>
-          <label>Resource type<select id="type"><option value="">All types</option><option>Past paper</option><option>Test / assessment</option><option>Revision notes</option><option>Worked questions</option><option>Lesson plan</option><option>Weekly forecast</option><option>Scheme of work</option></select></label>
+          <label>Resource type<select id="type"><option value="">All types</option><option>Past paper</option><option>Test / assessment</option><option>Revision notes</option><option>Worked questions</option><option>Lesson plan</option><option>Weekly forecast</option><option>Scheme of work</option></select></label><label>Exam year<input id="year-filter" type="number" min="1990" max="2100" placeholder="e.g. 2024"></label><label>Paper number<input id="paper-filter" type="search" placeholder="e.g. Paper 1"></label>
         </div>
         <div class="libbar"><span id="count" aria-live="polite">0 published resources</span><button id="reset" type="button" class="reset">Clear filters</button></div>
-        <div class="empty"><div style="font-size:32px" aria-hidden="true">📂</div><strong>Our online library is being prepared</strong><p>No PDF resources have been published on this new website yet. Contact ZamBright Academy to enquire about currently available materials.</p>
-        <a class="btn gold" href="https://wa.me/260973731979?text=Hello%20ZamBright%20Academy%2C%20I%20would%20like%20to%20ask%20about%20available%20learning%20materials." target="_blank" rel="noopener noreferrer">Enquire on WhatsApp ↗</a></div>
+        <div id="material-results"><div class="empty"><div style="font-size:32px" aria-hidden="true">📂</div><strong>Our online library is being prepared</strong><p>No PDF resources have been published on this new website yet. Contact ZamBright Academy to enquire about currently available materials.</p><a class="btn gold" href="https://wa.me/260973731979?text=Hello%20ZamBright%20Academy%2C%20I%20would%20like%20to%20ask%20about%20available%20learning%20materials." target="_blank" rel="noopener noreferrer">Enquire on WhatsApp ↗</a></div></div>
         <p class="note">Administrator uploads, approval controls, user accounts and direct PDF downloads are planned for the next development stage.</p>
       </div>
     </div></section>
@@ -83,9 +98,11 @@
         <div class="package"><h3>Teacher materials and bundles</h3><div class="price">On request</div><p>Lesson plans, test items, weekly forecasts and teaching resources. Pricing depends on materials requested.</p><a class="btn gold" target="_blank" rel="noopener noreferrer" href="https://wa.me/260973731979?text=Hello%20ZamBright%20Academy%2C%20I%20would%20like%20to%20enquire%20about%20teacher%20materials.">Ask about bundles ↗</a></div>
       </div>
     </div></section>
+    <section class="section" id="articles"><div class="wrap"><span class="kicker">ZamBright Journal</span><h2>Educational articles & financial literacy</h2><p class="desc">Read articles about learning, teaching, community issues and responsible financial decisions. Financial content is educational, not personalised loan advice.</p><div id="post-list" class="catalogue-grid"><p class="desc">Our first articles are coming soon.</p></div></div></section>
+    <section class="section white" id="partners"><div class="wrap"><span class="kicker">Partner and referral links</span><h2>Resources beyond the classroom</h2><p class="desc">Links are added only after verification. Some links may earn ZamBright Academy an affiliate commission. We do not issue loans or guarantee eligibility or approval.</p><div id="affiliate-list" class="catalogue-grid"><p class="desc">No partner recommendations have been published yet.</p></div></div></section>
     <section class="section" id="contact"><div class="wrap"><div class="contact"><div><span class="kicker">We are here to help</span><h2>Looking for a particular paper?</h2><p>Send the subject, grade or form, year and paper number. We'll confirm what is available.</p></div><a class="btn" target="_blank" rel="noopener noreferrer" href="https://wa.me/260973731979?text=Hello%20ZamBright%20Academy%2C%20I%20am%20looking%20for%20educational%20materials.">Chat on WhatsApp ↗</a></div></div></section>
   </main>
-  <footer><div class="wrap"><div class="footer-top"><div><strong>ZamBright Academy</strong><p>Learn Bright. Think Bright. Be Bright.<br>Educational resources for Zambia.</p></div><nav class="footnav" aria-label="Footer navigation"><a href="#subjects">Subjects</a><a href="#library">Library</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#contact">Contact</a></nav></div><div class="bottom"><span>© <span id="year">2026</span> ZamBright Academy. All rights reserved.</span><span>Contact: 0973731979</span></div></div></footer>
+  <footer><div class="wrap"><div class="footer-top"><div><strong>ZamBright Academy</strong><p>Learn Bright. Think Bright. Be Bright.<br>Educational resources for Zambia.</p></div><nav class="footnav" aria-label="Footer navigation"><a href="#subjects">Subjects</a><a href="#library">Library</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact">Contact</a></nav></div><div class="bottom"><span>© <span id="year">2026</span> ZamBright Academy. All rights reserved.</span><span>Contact: 0973731979</span></div></div></footer>
   <script>
     'use strict';
     document.getElementById('year').textContent = new Date().getFullYear();
