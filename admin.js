@@ -71,7 +71,27 @@
    document.querySelectorAll("[data-tab]").forEach((b)=>b.setAttribute("aria-selected",String(b.dataset.tab===tab)));
    document.querySelectorAll(".tab-page").forEach((p)=>p.classList.toggle("hidden",p.id!=="tab-"+tab));
  }
- function validateUrl(s) {
+
+ function sciencePaperNum(text){
+   const v=String(text||"").trim().toLowerCase();
+   if(/^(?:paper\s*(?:0*1|one)|0*1)$/.test(v))return 1;
+   if(/^(?:paper\s*(?:0*2|two)|0*2)$/.test(v))return 2;
+   return null;
+ }
+ function scienceCollectionUrl(resource){
+   if(resource.subject!=="Science"||resource.content_type!=="Past paper")return null;
+   const num=sciencePaperNum(resource.paper_number);
+   return num?"science-paper-"+num+".html":null;
+ }
+ function syncScienceSelector(){
+   const form=$("material-form"),panel=$("science-paper-selector-wrap"),select=$("science-paper-selector");
+   if(!form||!panel||!select)return;
+   const isScience=val(form,"subject")==="Science"&&val(form,"content_type")==="Past paper";
+   panel.hidden=!isScience;
+   select.required=isScience;
+   select.value=isScience?(sciencePaperNum(val(form,"paper_number"))?"Paper "+sciencePaperNum(val(form,"paper_number")):""):"";
+ }
+  function validateUrl(s) {
    try {const u=new URL(s);return u.protocol==="https:" ? u.href : null;} catch(_) {return null;}
  }
  function configReady(){
@@ -156,7 +176,7 @@
          actions.append(publish);
        }else{
          const publicLink=renderTag("a","View on live website ↗","button secondary");
-         publicLink.href="index.html?subject="+encodeURIComponent(row.subject)+"#library";
+         publicLink.href=scienceCollectionUrl(row)||"index.html?subject="+encodeURIComponent(row.subject)+"#library";
          publicLink.target="_blank";
          publicLink.rel="noopener noreferrer";
          actions.append(publicLink);
@@ -185,6 +205,7 @@
      kind==="posts"?["id","title","category","body","status"]:["id","name","url","category","status","description"];
    common.forEach(function(k){const f=field(form,k);if(f)f.value = row[k] === null ? "" : row[k];});
    if(kind==="materials"){
+     syncScienceSelector();
      ["branding_checked","page_order_checked","diagrams_checked","answers_checked"].forEach(k=>field(form,k).checked=Boolean(row[k]));
      publishMessage(row.status==="published"?"This paper is already published. Save to update it.":"This paper is still PRIVATE. Review it, check all four items, select Published, and press Save or Publish PDF.",null,false);
      yearFeedback(row.exam_year?"Saved examination year: "+row.exam_year+". You may correct it by editing the year field.":"No examination year is saved for this paper. Please enter the correct year from its cover.",!row.exam_year);
@@ -217,6 +238,10 @@
    if(file && file.size>50*1024*1024){notify("This file exceeds the 50 MB upload limit.","error");return;}
    const status=val(form,"status"),access=val(form,"access_type"),price=Number(val(form,"price_zmw")||0);
    const checks=["branding_checked","page_order_checked","diagrams_checked","answers_checked"];
+   if(status==="published"&&val(form,"subject")==="Science"&&val(form,"content_type")==="Past paper"&&!sciencePaperNum(val(form,"paper_number"))){
+     const msg="Science past papers must be assigned to Paper 1 or Paper 2. Select the correct Science paper collection before publishing.";
+     notify(msg,"error");publishMessage(msg,"error",true);return;
+   }
    const yearRaw=val(form,"exam_year");
    if(status==="published" && val(form,"content_type")==="Past paper" && !yearRaw){
      const msg="Enter the examination year shown on the PDF (for example 2011). A past paper cannot be published without its year.";
@@ -257,7 +282,7 @@
      clean(form);notify("Resource saved as "+status+". It will "+(status==="published"?"appear in the public library under "+data.subject+".":"remain private until you publish it.") ,"ok");
      if(status==="published"){
        const siteLink=renderTag("a"," View "+data.subject+" on public website ↗");
-       siteLink.href="index.html?subject="+encodeURIComponent(data.subject)+"#library";
+       siteLink.href=scienceCollectionUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
        siteLink.target="_blank";siteLink.rel="noopener noreferrer";
        siteLink.style.display="inline-block";siteLink.style.marginTop="6px";siteLink.style.fontWeight="bold";
        message.append(siteLink);
@@ -268,7 +293,7 @@
        const target=$("publish-feedback");
        if(target){
          const link=document.createElement("a");
-         link.href="index.html?subject="+encodeURIComponent(data.subject)+"#library";
+         link.href=scienceCollectionUrl(data)||"index.html?subject="+encodeURIComponent(data.subject)+"#library";
          link.target="_blank";link.rel="noopener noreferrer";
          link.textContent=" Open the public "+data.subject+" library ↗";
          target.append(document.createElement("br"),link);
@@ -367,9 +392,33 @@
      field(form,"content_type").value="Past paper";
      field(form,"access_type").value="free";
      field(form,"status").value="draft";
+     syncScienceSelector();
      notify("Science Paper 1 is selected. Choose the PDF file, enter the actual grade and year, then save it as a draft or publish after reviewing the checklist.");
      openUploader(true);
    });
+   const science2Preset=$("science-2-preset");
+   if(science2Preset)science2Preset.addEventListener("click",()=>{
+     clean($("material-form"));
+     const form=$("material-form");
+     field(form,"title").value="Science Paper 2";
+     field(form,"subject").value="Science";
+     field(form,"paper_number").value="Paper 2";
+     field(form,"content_type").value="Past paper";
+     field(form,"access_type").value="free";
+     field(form,"status").value="draft";
+     syncScienceSelector();
+     notify("Science Paper 2 selected. Choose the actual examination PDF and confirm its year before publishing.");
+     openUploader(true);
+   });
+   const materialsForm=$("material-form");
+   field(materialsForm,"subject").addEventListener("change",syncScienceSelector);
+   field(materialsForm,"content_type").addEventListener("change",syncScienceSelector);
+   field(materialsForm,"paper_number").addEventListener("input",syncScienceSelector);
+   const scienceSelector=$("science-paper-selector");
+   if(scienceSelector)scienceSelector.addEventListener("change",()=>{
+     if(scienceSelector.value)field(materialsForm,"paper_number").value=scienceSelector.value;
+   });
+   syncScienceSelector();
    const refreshPreview=$("refresh-preview");
    if(refreshPreview)refreshPreview.addEventListener("click",()=>{const iframe=$("site-preview");if(iframe)iframe.src="index.html";});
    document.querySelectorAll("[data-refresh]").forEach(b=>b.addEventListener("click",()=>loadRecords(b.dataset.refresh)));
@@ -379,7 +428,7 @@
    });
    $("post-form").addEventListener("submit",savePost);
    $("link-form").addEventListener("submit",saveLink);
-   $("material-clear").addEventListener("click",()=>clean($("material-form")));
+   $("material-clear").addEventListener("click",()=>{clean($("material-form"));syncScienceSelector();});
    $("post-clear").addEventListener("click",()=>clean($("post-form")));
    $("link-clear").addEventListener("click",()=>clean($("link-form")));
    if(window.location.hash==="#upload")showTab("materials");
