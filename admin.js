@@ -97,7 +97,7 @@
      actions.append(edit);
      if(kind==="materials"){
        if(row.status!=="published"){
-         const publish=renderTag("button","✅ Review & Publish","button gold");
+         const publish=renderTag("button","Review checklist to publish →","button gold");
          publish.type="button";
          publish.addEventListener("click",function(){
            editRecord("materials",row);
