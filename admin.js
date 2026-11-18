@@ -137,6 +137,7 @@
      signOut.classList.remove("hidden");
      showTab("materials");
      notify("Owner access verified. Select your PDF in STEP 1 below, then choose its subject and publishing status.","ok");
+     if(window.ZamBrightBulkUploader)window.ZamBrightBulkUploader.mount(client,()=>loadRecords("materials"));
      await Promise.all([loadRecords("materials"),loadRecords("posts"),loadRecords("links")]);
    } else {
      dashboard.classList.add("hidden");
@@ -255,7 +256,21 @@
    form.scrollIntoView({behavior:"smooth",block:"start"});
    notify("Editing: "+(row.title||row.name)+(kind==="materials"&&row.status!=="published" ? ". This paper is PRIVATE. Select Published, finish the four review checks, then Save or Publish PDF to make it appear on the website." : ". Save changes when ready."));
  }
- async function removeRecord(kind,row){
+ // Used by the V2.1 bulk queue to open a newly saved draft in the existing review form.
+ window.ZamBrightAdminReview=function(id){
+   const row=cache.materials.find(item=>item.id===id);
+   if(!row){
+     loadRecords("materials").then(()=>{
+       const found=cache.materials.find(item=>item.id===id);
+       if(found)editRecord("materials",found);
+       else notify("The uploaded paper is saved. Click Refresh under Saved resources, then select Edit.","error");
+     });
+     return;
+   }
+   editRecord("materials",row);
+   notify("This paper is saved as a PRIVATE draft. Open the PDF from Saved resources and verify it, then complete the four review checks and publish.");
+ };
+  async function removeRecord(kind,row){
    if(!window.confirm("Permanently delete '"+(row.title||row.name)+"'? This cannot be undone."))return;
    const table={materials:"zambright_materials",posts:"zambright_posts",links:"zambright_links"}[kind];
    try{
@@ -398,6 +413,7 @@
    signOut.addEventListener("click",async function(){
      const r=await client.auth.signOut();
      if(r.error){sayError(r.error);return;}
+     if(window.ZamBrightBulkUploader)window.ZamBrightBulkUploader.unmount();
      dashboard.classList.add("hidden");loginPanel.classList.remove("hidden");signOut.classList.add("hidden");
      notify("Signed out.");
    });
@@ -440,6 +456,12 @@
      uploadPanel.scrollIntoView({behavior:"smooth",block:"start"});
      if(openFilePicker && pdfInput)pdfInput.click();
    }
+   const bulkShortcut=$("quick-bulk");
+   if(bulkShortcut)bulkShortcut.addEventListener("click",()=>{
+     showTab("materials");
+     $("bulk-upload-panel")?.scrollIntoView({behavior:"smooth",block:"start"});
+     $("bulk-files")?.click();
+   });
    const quickUpload=$("quick-upload");
    if(quickUpload)quickUpload.addEventListener("click",()=>openUploader(true));
    const sciencePreset=$("science-preset");
