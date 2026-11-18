@@ -59,6 +59,7 @@
   </style>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script defer src="pdf-year-reader.js"></script>
   <script defer src="site-config.js"></script>
   <script defer src="admin.js"></script>
 </head>
@@ -149,7 +150,7 @@
             <div class="buttons"><button class="button gold" type="submit">Save or Publish PDF</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
           </form>
         </div>
-        <div class="panel"><div class="toolbar"><h2>Saved resources</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
+        <div class="panel"><div class="toolbar"><h2>Saved resources by examination year</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
       </section>
       <section id="tab-posts" class="tab-page hidden">
         <div class="panel"><h2>Write an article</h2><p class="hint">Write plain text. Financial-literacy posts should discuss costs and risks fairly and avoid promising that a loan will be approved.</p>
