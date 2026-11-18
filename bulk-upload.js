@@ -48,7 +48,7 @@ function detectPaper(str,filename){
  const patterns=[
    /\bpaper\s*(?:number|no\.?)?\s*[:.\-]?\s*(0?[123]|one|two|three)\b/ig,
    /\b(?:p|paper)[\s_-]*([123])\b/ig,
-   ...(filename?[/\b\d{4}[/_-]([123])\b/g]:[])
+   /\b\d{4}[\/_]([123])\b/g
  ];
  const found=new Set();
  for(const regex of patterns){
