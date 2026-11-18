@@ -45,42 +45,121 @@
         && (audience==="teacher" || !isTeacherType(m.content_type));
     });
   }
-  async function downloadFree(item, button) {
-    if (item.access_type!=="free") return;
-    button.disabled = true;
-    button.textContent = "Preparing PDF…";
-    try {
-      const response = await client.storage.from("zambright-materials").createSignedUrl(item.storage_path, 120);
-      if (response.error) throw response.error;
-      const a = document.createElement("a");
-      a.href = response.data.signedUrl;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      document.body.append(a); a.click(); a.remove();
-    } catch (error) {
-      window.alert("This download is temporarily unavailable. Please contact ZamBright Academy. " + error.message);
-    } finally { button.disabled=false; button.textContent="Open free PDF"; }
+
+  const pdfModal=document.getElementById("pdf-preview");
+  let previewItem=null,previewCaller=null;
+  function fileNameFor(item){
+    const title=String(item.title||"Past paper");
+    const base=[item.exam_year,title].filter(Boolean).join(" ")
+      .replace(/[^\w\s.-]/g,"").replace(/\s+/g,"_").slice(0,110);
+    return (base||"ZamBright_Paper").replace(/\.pdf$/i,"")+".pdf";
   }
-  function renderMaterial(item) {
-    const card = el("article","catalogue-card");
-    const tag = el("span","catalogue-tag", (item.exam_year ? "YEAR "+item.exam_year+" · " : "YEAR NOT SET · ")+item.content_type+" · Grade/Form "+item.grade);
-    const titleText=item.exam_year && !new RegExp("\\b"+String(item.exam_year)+"\\b").test(item.title) ? item.exam_year+" "+item.title : item.title;
-    const title = el("h3","",titleText);
-    const meta = el("p","catalogue-meta",[item.subject,item.paper_number].filter(Boolean).join(" · "));
-    const desc = el("p","",item.description || (item.topic ? "Topic: " + item.topic : "ZamBright Academy educational resource"));
-    card.append(tag,title,meta,desc);
-    if(item.access_type==="free"){
-      const b=el("button","btn gold","Open free PDF");
-      b.type="button";
-      b.addEventListener("click",function(){downloadFree(item,b);});
-      card.append(b);
-    } else {
-      const price = Number(item.price_zmw||0);
-      const b=el("a","btn gold","Enquire to buy · K"+price.toFixed(2));
-      b.href=wa("Hello ZamBright Academy. I would like to purchase: " + item.title + " (K" + price.toFixed(2) + "). How do I pay?");
-      b.target="_blank"; b.rel="noopener noreferrer";
-      card.append(b);
+  function fileSizeText(bytes){
+    const size=Number(bytes);
+    if(!Number.isFinite(size)||size<=0)return "";
+    return (size/(1024*1024)).toFixed(1)+" MB";
+  }
+  function closePreview(){
+    if(!pdfModal||pdfModal.hidden)return;
+    pdfModal.hidden=true;document.body.classList.remove("pdf-preview-open");
+    const frame=document.getElementById("pdf-preview-frame");
+    if(frame)frame.src="about:blank";
+    previewItem=null;
+    if(previewCaller)previewCaller.focus();
+    previewCaller=null;
+  }
+  function bindPreview(){
+    if(!pdfModal)return;
+    const close=document.getElementById("pdf-preview-close");
+    if(close)close.addEventListener("click",closePreview);
+    pdfModal.addEventListener("click",function(event){if(event.target===pdfModal)closePreview();});
+    document.addEventListener("keydown",function(event){
+      if(event.key==="Escape"&&!pdfModal.hidden){event.preventDefault();closePreview();}
+      if(event.key==="Tab"&&!pdfModal.hidden){
+        // Keep keyboard focus within the open preview dialog.
+        const focusables=[...pdfModal.querySelectorAll('a[href],button:not([disabled])')];
+        if(!focusables.length)return;
+        const first=focusables[0],last=focusables[focusables.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+      }
+    });
+    const download=document.getElementById("pdf-preview-download");
+    if(download)download.addEventListener("click",function(){if(previewItem)downloadPdf(previewItem,download);});
+  }
+  async function viewPdf(item,button){
+    if(item.access_type!=="free")return;
+    if(!pdfModal){
+      window.alert("PDF preview is unavailable on this browser. Use Download PDF instead.");
+      return;
     }
+    previewItem=item;previewCaller=button;
+    const title=document.getElementById("pdf-preview-title");
+    const status=document.getElementById("pdf-preview-status");
+    const frame=document.getElementById("pdf-preview-frame");
+    const newTab=document.getElementById("pdf-preview-newtab");
+    title.textContent=(item.exam_year?item.exam_year+" ":"")+item.title;
+    status.textContent="Preparing PDF preview. A large PDF may use considerable mobile data.";
+    frame.src="about:blank";newTab.removeAttribute("href");
+    pdfModal.hidden=false;document.body.classList.add("pdf-preview-open");
+    document.getElementById("pdf-preview-close").focus();
+    button.disabled=true;
+    try{
+      const result=await client.storage.from("zambright-materials").createSignedUrl(item.storage_path,120);
+      if(result.error)throw result.error;
+      if(previewItem!==item)return;
+      frame.src=result.data.signedUrl;
+      newTab.href=result.data.signedUrl;
+      status.textContent="Showing PDF preview"+(fileSizeText(item.file_size_bytes)?" · "+fileSizeText(item.file_size_bytes):"")+". If it does not display on this device, use Open PDF in new tab or Download PDF.";
+    }catch(error){
+      if(previewItem===item)status.textContent="Preview unavailable: "+(error.message||"Please retry.")+" Try Download PDF or contact ZamBright Academy.";
+    }finally{button.disabled=false;}
+  }
+  async function downloadPdf(item,button){
+    if(item.access_type!=="free")return;
+    const original=button.textContent;
+    button.disabled=true;button.textContent="Downloading…";
+    try{
+      // Downloads the published PDF as a Blob so mobile and desktop browsers can save a named offline copy.
+      const response=await client.storage.from("zambright-materials").download(item.storage_path);
+      if(response.error)throw response.error;
+      if(!response.data)throw Error("The PDF file could not be retrieved.");
+      const blobUrl=URL.createObjectURL(response.data);
+      const a=document.createElement("a");
+      a.href=blobUrl;a.download=fileNameFor(item);
+      document.body.appendChild(a);a.click();a.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(blobUrl),120000);
+    }catch(error){
+      window.alert("Download failed. Please try again or contact ZamBright Academy. "+(error.message||""));
+    }finally{button.disabled=false;button.textContent=original;}
+  }
+  function renderMaterial(item){
+    const card=el("article","catalogue-card");
+    const year=item.exam_year?String(item.exam_year):"Year not recorded";
+    const tag=el("span","catalogue-tag",year+" · "+item.content_type+" · Grade/Form "+item.grade);
+    const titleText=item.exam_year&&!new RegExp("\\b"+String(item.exam_year)+"\\b").test(item.title)
+      ?item.exam_year+" "+item.title:item.title;
+    const title=el("h3","",titleText);
+    const meta=el("p","catalogue-meta",[item.subject,item.paper_number].filter(Boolean).join(" · "));
+    const desc=el("p","",item.description||(item.topic?"Topic: "+item.topic:"ZamBright Academy educational resource"));
+    card.append(tag,title,meta,desc);
+    const detail=[fileSizeText(item.file_size_bytes),Number(item.page_count)>0?item.page_count+" pages":""].filter(Boolean).join(" · ");
+    if(detail)card.append(el("p","catalogue-meta-extra","PDF · "+detail));
+    const actions=el("div","catalogue-actions");
+    if(item.access_type==="free"){
+      const view=el("button","btn gold","View PDF");
+      view.type="button";view.addEventListener("click",function(){viewPdf(item,view);});
+      const save=el("button","btn","Download PDF");
+      save.type="button";save.addEventListener("click",function(){downloadPdf(item,save);});
+      actions.append(view,save);
+    }else{
+      const price=Number(item.price_zmw||0);
+      const b=el("a","btn gold","Enquire to buy · K"+price.toFixed(2));
+      b.href=wa("Hello ZamBright Academy. I would like to purchase: "+item.title+" (K"+price.toFixed(2)+"). How do I pay?");
+      b.target="_blank";b.rel="noopener noreferrer";
+      actions.append(b);
+    }
+    card.append(actions);
     return card;
   }
   function drawMaterials(){
@@ -344,6 +423,7 @@
   }
   async function init(){
     bindFilters();
+    bindPreview();
     bindBrowse();
     const requestedSubject=new URLSearchParams(window.location.search).get("subject");
     if(requestedSubject && Array.from(subject.options).some(function(option){return option.value===requestedSubject;})){
@@ -352,7 +432,7 @@
     revealOwnerToolbar();
     try {
       const [a,b,c] = await Promise.all([
-        client.from("zambright_materials").select("id,title,subject,grade,topic,exam_year,paper_number,content_type,description,access_type,price_zmw,storage_path,status").eq("status","published").order("created_at",{ascending:false}).limit(300),
+        client.from("zambright_materials").select("id,title,subject,grade,topic,exam_year,paper_number,content_type,description,access_type,price_zmw,storage_path,status,file_size_bytes,page_count").eq("status","published").order("created_at",{ascending:false}).limit(300),
         client.from("zambright_posts").select("id,title,category,body").eq("status","published").order("created_at",{ascending:false}).limit(30),
         client.from("zambright_links").select("id,name,url,description,category,is_affiliate").eq("status","published").order("created_at",{ascending:false}).limit(30)
       ]);
