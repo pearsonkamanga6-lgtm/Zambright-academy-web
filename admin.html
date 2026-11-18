@@ -39,6 +39,15 @@
     .upload-callout h2{margin:0 0 7px;color:var(--deep);font-size:23px}.upload-callout p{color:#5b5a54;font-size:14px;margin:0;max-width:630px}
     .upload-actions{display:flex;gap:10px;flex-wrap:wrap}
     .upload-step{border:2px dashed #8faedb;background:#edf4ff;padding:20px;border-radius:13px;margin-bottom:20px}
+    .publish-feedback{display:block;margin:15px 0;border-radius:11px;border:2px solid #d7b368;background:#fff7df;color:#573f00;font-size:14px;line-height:1.5;font-weight:700;padding:15px}
+    .publish-feedback[hidden]{display:none!important}
+    .publish-feedback.error{border-color:#e3a0a0;background:#fff0f0;color:#85272a}
+    .publish-feedback.ok{border-color:#9acdaa;background:#eaf8ee;color:#195b2e}
+    .publish-feedback a{color:inherit;text-decoration:underline}
+    .checks{scroll-margin-top:35px}
+    .checks input{width:18px;height:18px;vertical-align:middle}
+    .publish-help{font-size:14px!important;color:#344b70;margin:9px 0 4px;font-weight:700}
+
     .upload-step label{font-size:17px;color:var(--navy)}
     .upload-step input{background:#fff;border:1px solid #a6bfe0;padding:11px;margin-top:12px}
     .upload-step .file-hint{font-size:13px;color:#4f6685;margin:9px 0 0}
@@ -130,6 +139,8 @@
               <label><input type="checkbox" name="diagrams_checked">Diagrams checked, or not applicable</label>
               <label><input type="checkbox" name="answers_checked">Answers verified, or not applicable</label>
             </fieldset>
+            <p class="publish-help">Selecting “Published” only prepares the paper. Check each item above after reviewing the PDF, then click Save or Publish PDF below to make it public.</p>
+            <div class="publish-feedback" id="publish-feedback" role="alert" aria-live="assertive" hidden></div>
             <div class="buttons"><button class="button gold" type="submit">Save or Publish PDF</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
           </form>
         </div>
