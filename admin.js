@@ -411,6 +411,10 @@
      }catch(err){sayError(err);}finally{btn.disabled=false;field(f,"password").value="";}
    });
    signOut.addEventListener("click",async function(){
+     if(window.ZamBrightBulkUploader&&window.ZamBrightBulkUploader.isBusy()){
+       notify("PDF files are still being analyzed or uploaded. Please wait until the batch finishes before signing out.","error");
+       return;
+     }
      const r=await client.auth.signOut();
      if(r.error){sayError(r.error);return;}
      if(window.ZamBrightBulkUploader)window.ZamBrightBulkUploader.unmount();
