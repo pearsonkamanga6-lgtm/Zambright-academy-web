@@ -119,7 +119,9 @@
   }
   function bindFilters(){
     [subject,grade,type,search,year,paper].filter(Boolean).forEach(function(input){ input.addEventListener("input",drawMaterials);input.addEventListener("change",drawMaterials);});
-    document.querySelectorAll("[data-subject]").forEach(function(button){button.addEventListener("click",drawMaterials);});
+    document.querySelectorAll("[data-subject]").forEach(function(button){
+      button.addEventListener("click",function(){openBrowse("subject",button.getAttribute("data-subject"),0,true);});
+    });
     const reset=document.getElementById("reset");if(reset)reset.addEventListener("click",function(){if(year)year.value="";if(paper)paper.value="";drawMaterials();});
     [["pupil","pupil"],["teacher","teacher"]].forEach(function(pair){const tab=document.getElementById(pair[0]);if(tab)tab.addEventListener("click",function(){audience=pair[1];drawMaterials();});});
   }
@@ -150,6 +152,184 @@
       card.append(link);holder.append(card);
     });
   }
+
+  // Same-page subject browser. No separate website or automatic scroll to the old PDF catalogue.
+  const browserPanel=document.getElementById("browse-workspace");
+  let browse={kind:"home",subject:"",paper:0};
+  let papersLoaded=false;
+  let browseLoadError=false;
+  const browsingIds={
+    choices:"browse-choices",papers:"browse-papers",general:"browse-general",
+    current:"browse-current",title:"browse-title",description:"browse-description",
+    paperResult:"browse-paper-results",generalResult:"browse-general-results"
+  };
+  function element(id){return document.getElementById(id);}
+  function parseSciencePaper(item){
+    const number=String(item.paper_number||"").trim().toLowerCase();
+    if(number){
+      if(/^(?:paper[\s-]*(?:0*1|one)|0*1)$/.test(number))return 1;
+      if(/^(?:paper[\s-]*(?:0*2|two)|0*2)$/.test(number))return 2;
+      return null;
+    }
+    // Some older uploads have no paper_number. Use the title only when unambiguous.
+    const matches=[...String(item.title||"").toLowerCase().matchAll(/\bpaper[\s:-]*(0?[123]|one|two|three)\b/g)];
+    if(matches.length!==1)return null;
+    return {"1":1,"01":1,one:1,"2":2,"02":2,two:2}[matches[0][1]]||null;
+  }
+  function publishedScience(paperNumber){
+    return materials.filter(function(m){
+      return m.subject==="Science"&&m.content_type==="Past paper"&&parseSciencePaper(m)===paperNumber;
+    });
+  }
+  function matchesBrowseSearch(item,term){
+    if(!term)return true;
+    return [item.title,item.subject,item.exam_year,item.paper_number,item.grade,item.topic,item.description].join(" ").toLowerCase().includes(term);
+  }
+  function browseEmpty(parent,heading,message){
+    const container=el("div","browse-empty");
+    container.append(el("strong","",heading),el("p","",message));
+    parent.append(container);
+  }
+  function renderYearGroups(rows,resultId,emptyMessage){
+    const holder=element(resultId);if(!holder)return;
+    clear(holder);
+    if(!papersLoaded){
+      browseEmpty(holder,browseLoadError?"Could not load published papers":"Loading published papers…",
+        browseLoadError?"Please refresh the website or contact ZamBright Academy.":"Retrieving ZamBright Academy materials.");return;
+    }
+    if(!rows.length){
+      browseEmpty(holder,"No matching materials found",emptyMessage);return;
+    }
+    const sorted=rows.slice().sort(function(a,b){
+      return (Number(b.exam_year)||0)-(Number(a.exam_year)||0)||
+        String(a.title||"").localeCompare(String(b.title||""),undefined,{numeric:true});
+    });
+    const years=new Map();
+    sorted.forEach(function(m){
+      const label=m.exam_year?String(m.exam_year):"Year not recorded";
+      if(!years.has(label))years.set(label,[]);
+      years.get(label).push(m);
+    });
+    years.forEach(function(group,label){
+      const section=el("section","browse-year");
+      section.append(el("h3","browse-year-heading",label==="Year not recorded"?label:"Examination year "+label));
+      const cards=el("div","catalogue-grid");
+      group.forEach(m=>cards.append(renderMaterial(m)));
+      section.append(cards);holder.append(section);
+    });
+  }
+  function displayBrowse(){
+    if(!browserPanel)return;
+    const isBrowse=browse.kind!=="home";
+    document.body.classList.toggle("zb-browse-mode",isBrowse);
+    browserPanel.hidden=!isBrowse;
+    if(!isBrowse)return;
+    const choices=element(browsingIds.choices),papers=element(browsingIds.papers),general=element(browsingIds.general);
+    choices.hidden=!(browse.kind==="science" && !browse.paper);
+    papers.hidden=!(browse.kind==="science" && !!browse.paper);
+    general.hidden=browse.kind!=="subject";
+    const back=element("browse-back-science");
+    back.hidden=!(browse.kind==="science" && !!browse.paper);
+    if(browse.kind==="science"){
+      element(browsingIds.title).textContent=browse.paper?"Science Paper "+browse.paper:"Science";
+      element(browsingIds.current).textContent=browse.paper?"Paper "+browse.paper:"Science";
+      element(browsingIds.description).textContent=browse.paper?
+        "Every published Science Paper "+browse.paper+" appears here, organised by examination year. Select a free PDF to open or download it.":
+        "Choose Science Paper 1 or Science Paper 2 to see every approved examination PDF. All documents appear right here on ZamBright Academy.";
+      [1,2].forEach(function(num){
+        const total=publishedScience(num).length;
+        const node=element(num===1?"inline-paper1-count":"inline-paper2-count");
+        if(node)node.textContent=papersLoaded?total+" published paper"+(total===1?"":"s"):"Loading papers…";
+      });
+      if(browse.paper){
+        const q=element("browse-paper-search").value.trim().toLowerCase();
+        const rows=publishedScience(browse.paper).filter(m=>matchesBrowseSearch(m,q));
+        element("browse-paper-count").textContent=papersLoaded?rows.length+" paper"+(rows.length===1?"":"s"):"Loading…";
+        renderYearGroups(rows,browsingIds.paperResult,
+          q?"Try another year or title.":"No Science Paper "+browse.paper+" has been published yet. The section is ready for future uploads.");
+      }
+    }else{
+      element(browsingIds.title).textContent=browse.subject;
+      element(browsingIds.current).textContent=browse.subject;
+      element(browsingIds.description).textContent="All approved "+browse.subject+" teaching materials and examination papers, organised by year.";
+      const q=element("browse-general-search").value.trim().toLowerCase();
+      const rows=materials.filter(m=>m.subject===browse.subject && matchesBrowseSearch(m,q));
+      element("browse-general-count").textContent=papersLoaded?rows.length+" resource"+(rows.length===1?"":"s"):"Loading…";
+      renderYearGroups(rows,browsingIds.generalResult,q?"Try a different search.":"Published "+browse.subject+" resources will appear here when available.");
+    }
+  }
+  function browseUrl(kind,subject,paper){
+    const u=new URL(window.location.href);
+    u.searchParams.delete("view");u.searchParams.delete("paper");u.searchParams.delete("subject");
+    u.hash="";
+    if(kind==="science"){
+      u.searchParams.set("view","science");
+      if(paper)u.searchParams.set("paper",String(paper));
+    }else if(kind==="subject"){
+      u.searchParams.set("view","subject");
+      u.searchParams.set("subject",subject);
+    }
+    return u.pathname+u.search;
+  }
+  function openBrowse(kind,subject,paper,addHistory){
+    const isScience=kind==="science";
+    browse={kind:kind,subject:isScience?"Science":subject||"",paper:isScience&&(paper===1||paper===2)?paper:0};
+    if(addHistory)window.history.pushState({zbBrowse:true},"",browseUrl(browse.kind,browse.subject,browse.paper));
+    displayBrowse();
+    window.scrollTo({top:0,behavior:"instant"});
+  }
+  function goHome(pushHistory){
+    browse={kind:"home",subject:"",paper:0};
+    if(pushHistory)window.history.pushState({zbBrowse:true},"",browseUrl("home","",0));
+    displayBrowse();
+    window.scrollTo({top:0,behavior:"instant"});
+  }
+  function syncBrowseFromUrl(){
+    const params=new URLSearchParams(window.location.search);
+    const view=params.get("view");
+    const p=Number(params.get("paper"));
+    if(view==="science")openBrowse("science","Science",p,false);
+    else if(view==="subject"&&params.get("subject"))openBrowse("subject",params.get("subject"),0,false);
+    else goHome(false);
+  }
+  function bindBrowse(){
+    const scienceLink=document.querySelector('[data-view-subject="Science"]');
+    if(scienceLink)scienceLink.addEventListener("click",function(event){
+      event.preventDefault();openBrowse("science","Science",0,true);
+    });
+    document.querySelectorAll("[data-science-paper]").forEach(function(button){
+      button.addEventListener("click",function(){
+        element("browse-paper-search").value="";
+        openBrowse("science","Science",Number(button.dataset.sciencePaper),true);
+      });
+    });
+    const home=element("browse-home"),back=element("browse-back-science");
+    if(home)home.addEventListener("click",()=>goHome(true));
+    if(back)back.addEventListener("click",()=>openBrowse("science","Science",0,true));
+    const paperSearch=element("browse-paper-search"),generalSearch=element("browse-general-search");
+    if(paperSearch)paperSearch.addEventListener("input",displayBrowse);
+    if(generalSearch)generalSearch.addEventListener("input",displayBrowse);
+    // Existing website menus still work: clicking Home, Subjects or Articles restores the homepage.
+    document.querySelectorAll('a[href^="#"]').forEach(function(link){
+      link.addEventListener("click",function(event){
+        if(browse.kind==="home")return;
+        event.preventDefault();
+        const hash=link.getAttribute("href");
+        goHome(false);
+        const url=new URL(window.location.href);
+        url.searchParams.delete("view");url.searchParams.delete("paper");url.searchParams.delete("subject");
+        url.hash=hash;
+        window.history.pushState({zbBrowse:true},"",url.pathname+url.search+url.hash);
+        window.requestAnimationFrame(function(){
+          const target=document.getElementById(hash.slice(1));
+          if(target)target.scrollIntoView({behavior:"smooth",block:"start"});
+        });
+      });
+    });
+    window.addEventListener("popstate",syncBrowseFromUrl);
+    syncBrowseFromUrl();
+  }
+
   async function revealOwnerToolbar(){
     try {
       const userResult=await client.auth.getUser();
@@ -164,6 +344,7 @@
   }
   async function init(){
     bindFilters();
+    bindBrowse();
     const requestedSubject=new URLSearchParams(window.location.search).get("subject");
     if(requestedSubject && Array.from(subject.options).some(function(option){return option.value===requestedSubject;})){
       subject.value=requestedSubject;
@@ -176,11 +357,12 @@
         client.from("zambright_links").select("id,name,url,description,category,is_affiliate").eq("status","published").order("created_at",{ascending:false}).limit(30)
       ]);
       if(a.error)throw a.error;
-      materials=a.data||[];drawMaterials();
+      materials=a.data||[];papersLoaded=true;drawMaterials();displayBrowse();
       if(!b.error)renderPosts(b.data||[]);
       if(!c.error)renderLinks(c.data||[]);
     } catch(e) {
       console.error("ZamBright library service:",e);
+      papersLoaded=true;browseLoadError=true;displayBrowse();
       if(count)count.textContent="Library temporarily unavailable";
     }
   }
