@@ -39,6 +39,7 @@
     .upload-callout h2{margin:0 0 7px;color:var(--deep);font-size:23px}.upload-callout p{color:#5b5a54;font-size:14px;margin:0;max-width:630px}
     .upload-actions{display:flex;gap:10px;flex-wrap:wrap}
     .upload-step{border:2px dashed #8faedb;background:#edf4ff;padding:20px;border-radius:13px;margin-bottom:20px}
+    .metadata-alert{background:#fff7df;border:1px solid #e6c87c;color:#765200;border-radius:9px;padding:10px 12px;font-size:13px;font-weight:700;margin:9px 0}
     .year-detection{border:1px solid #cbdcf4;background:#edf4ff;color:#254c7b;border-radius:8px;padding:10px 13px;font-size:13px;font-weight:600}
     .year-detection.warning{background:#fff7df;border-color:#e7c46e;color:#604a12}
     .year-group{border:1px solid var(--border);border-radius:13px;padding:15px;margin:14px 0;background:#f9fbff}
@@ -118,12 +119,13 @@
       <section id="tab-materials" class="tab-page">
         <div class="panel" id="upload-panel"><h2>Upload or edit a PDF</h2><p class="hint">The file is stored securely in Supabase. After publication, the public website automatically displays it under the subject you select.</p>
           <form id="material-form">
-            <input type="hidden" name="id"><input type="hidden" name="storage_path">
+            <input type="hidden" name="id"><input type="hidden" name="storage_path"><input type="hidden" name="page_count">
             <div class="upload-step">
               <label for="pdf-file">STEP 1 — Select the PDF from your phone or computer</label>
               <input id="pdf-file" name="file" type="file" accept=".pdf,application/pdf" aria-describedby="chosen-pdf file-size-note">
               <p class="file-hint" id="chosen-pdf" aria-live="polite">No PDF selected yet. Tap “Choose File” to find your Science Paper 1.</p>
               <p class="file-hint" id="file-size-note">Only PDF files, maximum 50 MB. When editing an existing paper, you may leave this empty to keep the existing PDF.</p>
+              <p class="file-hint" id="pdf-page-count-feedback" aria-live="polite">File size and page count will be shown to visitors when available.</p>
             </div>
             <h3 class="form-subhead">STEP 2 — Tell us where this paper belongs</h3>
             <div class="fields">
@@ -133,7 +135,15 @@
               <label>Topic<input name="topic" placeholder="Optional topic"></label>
               <label>Examination year <strong>(required for past papers)</strong><input id="exam-year" name="exam_year" type="number" min="1990" max="2100" placeholder="e.g. 2011" inputmode="numeric" aria-describedby="year-detection"></label>
               <div class="wide year-detection" id="year-detection" role="status" aria-live="polite">When you choose a PDF, I'll check its opening pages for the exam year. Please verify the detected year against the paper before publishing. Scanned documents may need manual entry.</div>
-              <label>Paper number<input name="paper_number" placeholder="e.g. Paper 1"></label>
+              <label>Paper number <strong>(required for past papers)</strong>
+                <select name="paper_number" aria-describedby="paper-category-help">
+                  <option value="">Choose a paper number</option>
+                  <option value="Paper 1">Paper 1</option>
+                  <option value="Paper 2">Paper 2</option>
+                  <option value="Paper 3">Paper 3</option>
+                </select>
+                <span id="paper-category-help" class="hint">Choose the actual paper number printed on the document. This controls its public collection.</span>
+              </label>
               <label id="science-paper-selector-wrap" class="wide" hidden>Science paper collection (required for Science past papers)
                 <select id="science-paper-selector" aria-describedby="science-paper-help">
                   <option value="">Select Paper 1 or Paper 2</option>
