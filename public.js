@@ -64,7 +64,8 @@
   function renderMaterial(item) {
     const card = el("article","catalogue-card");
     const tag = el("span","catalogue-tag", (item.exam_year ? "YEAR "+item.exam_year+" · " : "YEAR NOT SET · ")+item.content_type+" · Grade/Form "+item.grade);
-    const title = el("h3","",item.title);
+    const titleText=item.exam_year && !new RegExp("\\b"+String(item.exam_year)+"\\b").test(item.title) ? item.exam_year+" "+item.title : item.title;
+    const title = el("h3","",titleText);
     const meta = el("p","catalogue-meta",[item.subject,item.paper_number].filter(Boolean).join(" · "));
     const desc = el("p","",item.description || (item.topic ? "Topic: " + item.topic : "ZamBright Academy educational resource"));
     card.append(tag,title,meta,desc);
