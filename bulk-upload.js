@@ -185,7 +185,7 @@ function fieldInput(item,label,key,type,options,cls){
    if(key==="title")input.maxLength=180;
    if(key==="grade")input.maxLength=40;
  }
- input.disabled=busy||item.status==="saved"||item.skip;
+ input.disabled=busy||analyzing||item.status==="saved"||item.skip;
  input.setAttribute("aria-label",label+" for "+item.file.name);
  input.addEventListener("input",function(){item[key]=input.value;item.error="";});
  input.addEventListener("change",function(){
@@ -224,17 +224,17 @@ function createRow(item,i){
    box.append(detection);
    const controls=element("div","bulk-item-bottom");
    const exception=wrapLabel("Skip this PDF (do not upload)",document.createElement("input"),"bulk-exception");
-   const cb=exception.querySelector("input");cb.type="checkbox";cb.checked=Boolean(item.skip);cb.disabled=busy;
+   const cb=exception.querySelector("input");cb.type="checkbox";cb.checked=Boolean(item.skip);cb.disabled=busy||analyzing;
    cb.addEventListener("change",()=>{item.skip=cb.checked;item.error="";renderQueue();});
    controls.append(exception);
    const buttons=element("div");
-   const preview=element("button","button secondary","Preview PDF ↗");preview.type="button";preview.disabled=busy;
+   const preview=element("button","button secondary","Preview PDF ↗");preview.type="button";preview.disabled=busy||analyzing;
    preview.addEventListener("click",function(){
      const url=URL.createObjectURL(item.file);
      window.open(url,"_blank","noopener,noreferrer");
      window.setTimeout(()=>URL.revokeObjectURL(url),120000);
    });
-   const remove=element("button","button danger","Remove");remove.type="button";remove.disabled=busy;
+   const remove=element("button","button danger","Remove");remove.type="button";remove.disabled=busy||analyzing;
    remove.addEventListener("click",function(){queue=queue.filter(x=>x!==item);renderQueue();});
    buttons.append(preview,document.createTextNode(" "),remove);
    controls.append(buttons);box.append(controls);
@@ -444,5 +444,5 @@ function unmount(){
  renderQueue();
  status("Sign in as the ZamBright Academy administrator to upload papers.");
 }
-window.ZamBrightBulkUploader={mount,unmount};
+window.ZamBrightBulkUploader={mount,unmount,isBusy:()=>busy||analyzing};
 })();
