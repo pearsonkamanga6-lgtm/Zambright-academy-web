@@ -63,9 +63,9 @@
   }
   function renderMaterial(item) {
     const card = el("article","catalogue-card");
-    const tag = el("span","catalogue-tag",item.content_type + " · " + item.grade);
+    const tag = el("span","catalogue-tag", (item.exam_year ? "YEAR "+item.exam_year+" · " : "YEAR NOT SET · ")+item.content_type+" · Grade/Form "+item.grade);
     const title = el("h3","",item.title);
-    const meta = el("p","catalogue-meta",[item.subject,item.exam_year,item.paper_number].filter(Boolean).join(" · "));
+    const meta = el("p","catalogue-meta",[item.subject,item.paper_number].filter(Boolean).join(" · "));
     const desc = el("p","",item.description || (item.topic ? "Topic: " + item.topic : "ZamBright Academy educational resource"));
     card.append(tag,title,meta,desc);
     if(item.access_type==="free"){
@@ -85,16 +85,36 @@
   function drawMaterials(){
     if(!resultHolder) return;
     clear(resultHolder);
-    const selected=selectedResults();
+    const selected=selectedResults().sort(function(a,b){
+      return (Number(b.exam_year)||0)-(Number(a.exam_year)||0)
+        || String(a.subject).localeCompare(String(b.subject))
+        || String(a.title).localeCompare(String(b.title),undefined,{numeric:true});
+    });
     if(count)count.textContent=selected.length+" published resource"+(selected.length===1?"":"s");
     if(selected.length===0){
       const box=el("div","empty");
       box.append(el("div","empty-symbol","📂"),el("strong","", materials.length ? "No materials match your filters" : "Our online library is being prepared"), el("p","",materials.length ? "Try clearing some search filters." : "No PDF resources have been published yet. Contact ZamBright Academy to ask about currently available materials."));
       resultHolder.append(box);return;
     }
-    const cards=el("div","catalogue-grid");
-    selected.forEach(function(item){cards.append(renderMaterial(item));});
-    resultHolder.append(cards);
+    // Group the published library by the year of the actual examination, newest first.
+    // Papers without a year stay in a clearly labelled group rather than being assigned a guessed year.
+    const years=new Map();
+    selected.forEach(function(item){
+      const key=item.exam_year ? String(item.exam_year) : "Year not recorded";
+      if(!years.has(key))years.set(key,[]);
+      years.get(key).push(item);
+    });
+    years.forEach(function(items,yearLabel){
+      const group=el("section","catalogue-year-group");
+      const head=el("div","catalogue-year-head");
+      head.append(el("h3","",yearLabel==="Year not recorded"?yearLabel:"Examination year "+yearLabel));
+      head.append(el("span","catalogue-year-count",items.length+" paper"+(items.length===1?"":"s")+" / resource"+(items.length===1?"":"s")));
+      group.append(head);
+      const cards=el("div","catalogue-grid");
+      items.forEach(function(item){cards.append(renderMaterial(item));});
+      group.append(cards);
+      resultHolder.append(group);
+    });
   }
   function bindFilters(){
     [subject,grade,type,search,year,paper].filter(Boolean).forEach(function(input){ input.addEventListener("input",drawMaterials);input.addEventListener("change",drawMaterials);});
