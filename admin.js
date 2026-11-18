@@ -152,10 +152,20 @@
      links:["zambright_links","link-list"]
    }[kind];
    if(!info)return;
-   const res=await client.from(info[0]).select("*").order("created_at",{ascending:false}).limit(300);
-   if(res.error){sayError(res.error);return;}
-   cache[kind]=res.data||[];
-   drawRecords(kind,info[1]);
+   try{
+     const rows=[],batch=250;
+     for(let start=0;start<20000;start+=batch){
+       const res=await client.from(info[0]).select("*")
+         .order("created_at",{ascending:false}).order("id",{ascending:false})
+         .range(start,start+batch-1);
+       if(res.error)throw res.error;
+       const page=res.data||[];
+       rows.push(...page);
+       if(page.length<batch)break;
+     }
+     cache[kind]=rows;
+     drawRecords(kind,info[1]);
+   }catch(error){sayError(error);}
  }
  function drawRecords(kind,targetId){
    const holder=$(targetId);holder.replaceChildren();
