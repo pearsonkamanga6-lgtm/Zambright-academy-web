@@ -466,6 +466,23 @@
       }
     }catch(error){console.warn("Owner toolbar unavailable",error);}
   }
+
+  async function fetchPublishedMaterials(){
+    const batchSize=250,all=[];
+    // Fetch every published record, not only the first 300, so old examination years remain discoverable.
+    for(let start=0;start<20000;start+=batchSize){
+      const result=await client.from("zambright_materials")
+        .select("id,title,subject,grade,topic,exam_year,paper_number,content_type,description,access_type,price_zmw,storage_path,status,file_size_bytes,page_count")
+        .eq("status","published")
+        .order("created_at",{ascending:false}).order("id",{ascending:false})
+        .range(start,start+batchSize-1);
+      if(result.error)throw result.error;
+      const rows=result.data||[];
+      all.push(...rows);
+      if(rows.length<batchSize)return {data:all,error:null};
+    }
+    throw Error("The public catalogue has exceeded its configured record limit. Please contact ZamBright Academy.");
+  }
   async function init(){
     bindFilters();
     bindPreview();
@@ -477,7 +494,7 @@
     revealOwnerToolbar();
     try {
       const [a,b,c] = await Promise.all([
-        client.from("zambright_materials").select("id,title,subject,grade,topic,exam_year,paper_number,content_type,description,access_type,price_zmw,storage_path,status,file_size_bytes,page_count").eq("status","published").order("created_at",{ascending:false}).limit(300),
+        fetchPublishedMaterials(),
         client.from("zambright_posts").select("id,title,category,body").eq("status","published").order("created_at",{ascending:false}).limit(30),
         client.from("zambright_links").select("id,name,url,description,category,is_affiliate").eq("status","published").order("created_at",{ascending:false}).limit(30)
       ]);
