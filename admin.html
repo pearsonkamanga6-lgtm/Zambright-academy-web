@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#082d73">
+  <title>ZamBright Academy — Owner Dashboard</title>
+  <link rel="icon" href="assets/zambright-logo.png" type="image/png">
+  <style>
+    :root{--navy:#082d73;--deep:#061e4a;--gold:#f5b400;--pale:#edf4ff;--ink:#203049;--muted:#60718a;--border:#d9e4f4}
+    *{box-sizing:border-box}body{margin:0;background:#f4f7fc;font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.5}
+    button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:var(--navy)}.wrap{width:min(1100px,calc(100% - 32px));margin:auto}
+    header{background:white;border-bottom:3px solid var(--gold)}.top{min-height:95px;display:flex;align-items:center;justify-content:space-between;gap:16px}.logo{width:125px;height:auto}.navitem{font-weight:bold;font-size:13px}
+    main{padding:30px 0 70px}.intro{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:21px}.intro h1{color:var(--deep);margin:0;font-size:29px}.intro p{color:var(--muted);margin:4px 0}
+    .panel{background:#fff;border:1px solid var(--border);border-radius:17px;padding:25px;box-shadow:0 8px 30px #082d730c;margin-bottom:20px}.panel h2{color:var(--navy);font-size:21px;margin:0 0 12px}.panel p{color:var(--muted)}
+    .hidden{display:none!important}.button{background:var(--navy);color:white;border:0;border-radius:9px;padding:12px 19px;font-weight:bold;min-height:44px}.button.secondary{background:var(--pale);color:var(--navy)}.button.gold{background:var(--gold);color:var(--deep)}.button.danger{background:#fff0f0;color:#8c1c22}.button:disabled{opacity:.55;cursor:wait}
+    .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.fields .wide{grid-column:1/-1}
+    label{font-size:13px;font-weight:700;color:#304c77;display:block}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #bdcde4;border-radius:9px;min-height:44px;padding:10px 11px;background:white;color:var(--ink)}textarea{min-height:110px;resize:vertical}.hint{font-size:12px!important;color:var(--muted)}.checks{border:1px solid var(--border);padding:16px;border-radius:12px;background:#fafcff}.checks legend{font-weight:bold;color:var(--navy)}.checks label{display:block;margin:8px 0;font-weight:normal}.checks input{display:inline-block;width:auto;min-height:0;margin:0 8px 0 0}.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}.tab{border:1px solid var(--border);border-radius:9px;padding:10px 16px;background:white;color:var(--navy);font-weight:bold}.tab[aria-selected=true]{background:var(--navy);color:white}
+    .status{padding:11px 15px;border-radius:10px;background:#edf4ff;border:1px solid #bfceed;margin:15px 0;white-space:pre-wrap;font-size:13px}.status.error{background:#fff1f0;color:#8f2626;border-color:#eab8b5}.status.ok{background:#effaf1;color:#256c35;border-color:#b8e1bc}
+    .entry{border-top:1px solid var(--border);padding:16px 0}.entry:first-child{border-top:0}.entry h3{margin:0;color:var(--deep);font-size:17px}.entry p{margin:6px 0;font-size:13px}.entry .meta{color:var(--muted)}.entry .buttons{margin-top:10px}.entry .button{padding:8px 12px;min-height:36px;font-size:12px}
+    .badge{display:inline-block;font-size:11px;font-weight:bold;border:1px solid #bbc9e2;border-radius:20px;padding:2px 8px;margin-left:8px;background:#f4f7fc}.toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center}
+    @media(max-width:680px){.fields{grid-template-columns:1fr}.top{min-height:77px}.logo{width:100px}.intro h1{font-size:24px}.panel{padding:18px}.toolbar{align-items:flex-start;flex-direction:column}}
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script defer src="site-config.js"></script>
+  <script defer src="admin.js"></script>
+</head>
+<body>
+  <header><div class="wrap top"><a href="index.html" aria-label="Return to ZamBright Academy"><img class="logo" src="assets/zambright-logo.png" alt="ZamBright Academy"></a><a class="navitem" href="index.html">← Public website</a></div></header>
+  <main class="wrap">
+    <div class="intro"><div><h1>Owner dashboard</h1><p>Manage teaching materials, articles and approved partner links.</p></div><button id="sign-out" type="button" class="button secondary hidden">Sign out</button></div>
+    <div id="setup" class="panel hidden"><h2>Finish the secure owner setup</h2><p>This website is ready for a Supabase database and owner account, but they have not yet been connected. Only you should run the secure setup in your own Supabase dashboard.</p><p>See the <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer">Supabase dashboard</a> and the repository file <code>setup/README.md</code>. Never paste a secret key into the website.</p></div>
+    <section id="login-panel" class="panel hidden" aria-labelledby="login-title">
+      <h2 id="login-title">Owner sign-in</h2><p>Use your authorised ZamBright Academy account. Visitors cannot gain publishing privileges by signing in.</p>
+      <form id="login-form">
+        <div class="fields"><label>Email<input name="email" type="email" autocomplete="username" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label></div>
+        <div class="buttons"><button class="button gold" type="submit">Sign in securely</button></div>
+      </form>
+    </section>
+    <div id="message" role="status" aria-live="polite" class="status hidden"></div>
+    <section id="dashboard" class="hidden">
+      <div class="panel"><strong>Signed in as:</strong> <span id="admin-email"></span><p class="hint">Only approved, published materials are shown on the public site. Your draft PDFs are private. Paid downloads are not automatically enabled until a verified Mobile Money checkout is connected.</p></div>
+      <div class="tabs" role="tablist" aria-label="Choose a management area">
+        <button type="button" class="tab" data-tab="materials" aria-selected="true">📄 Past papers & PDFs</button>
+        <button type="button" class="tab" data-tab="posts" aria-selected="false">✍️ Articles & blog</button>
+        <button type="button" class="tab" data-tab="links" aria-selected="false">🔗 Affiliate links</button>
+      </div>
+      <section id="tab-materials" class="tab-page">
+        <div class="panel"><h2>Upload or edit a resource</h2><p class="hint">Choose a PDF, describe it and save as a draft. Only publish after completing the quality checklist. Maximum PDF size: 50 MB on the free Supabase plan.</p>
+          <form id="material-form">
+            <input type="hidden" name="id"><input type="hidden" name="storage_path">
+            <div class="fields">
+              <label class="wide">Resource title<input name="title" placeholder="e.g. Biology 2022 Paper 1" maxlength="180" required></label>
+              <label>Subject<select name="subject" required><option>Mathematics</option><option>Science / Physics</option><option>Biology</option><option>Chemistry</option><option>Civic Education</option><option>Religious Education</option><option>English</option><option>Literature</option></select></label>
+              <label>Grade / Form<input name="grade" placeholder="e.g. Grade 12, Form 1" required></label>
+              <label>Topic<input name="topic" placeholder="Optional topic"></label>
+              <label>Examination year<input name="exam_year" type="number" min="1990" max="2100" placeholder="e.g. 2024"></label>
+              <label>Paper number<input name="paper_number" placeholder="e.g. Paper 1"></label>
+              <label>Resource type<select name="content_type"><option>Past paper</option><option>Test / assessment</option><option>Revision notes</option><option>Worked questions</option><option>Lesson plan</option><option>Weekly forecast</option><option>Scheme of work</option></select></label>
+              <label>Access<select name="access_type"><option value="free">Free download</option><option value="paid">Paid / enquiry only for now</option></select></label>
+              <label>Price in ZMW (paid only)<input name="price_zmw" type="number" min="0" step="0.01" value="0"></label>
+              <label>Publishing status<select name="status"><option value="draft">Draft — private</option><option value="review">Under review — private</option><option value="published">Published — public listing</option></select></label>
+              <label class="wide">PDF file<input name="file" type="file" accept=".pdf,application/pdf"><span class="hint">Required for new resources; optional when editing an existing one.</span></label>
+              <label class="wide">Short description<textarea name="description" placeholder="What will learners find in this PDF?"></textarea></label>
+            </div>
+            <fieldset class="checks"><legend>Quality review checklist (required to publish)</legend>
+              <label><input type="checkbox" name="branding_checked">ZamBright branding checked</label>
+              <label><input type="checkbox" name="page_order_checked">All pages complete and in correct order</label>
+              <label><input type="checkbox" name="diagrams_checked">Diagrams checked, or not applicable</label>
+              <label><input type="checkbox" name="answers_checked">Answers verified, or not applicable</label>
+            </fieldset>
+            <div class="buttons"><button class="button gold" type="submit">Save resource</button><button class="button secondary" type="button" id="material-clear">Clear / new resource</button></div>
+          </form>
+        </div>
+        <div class="panel"><div class="toolbar"><h2>Saved resources</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
+      </section>
+      <section id="tab-posts" class="tab-page hidden">
+        <div class="panel"><h2>Write an article</h2><p class="hint">Write plain text. Financial-literacy posts should discuss costs and risks fairly and avoid promising that a loan will be approved.</p>
+          <form id="post-form"><input type="hidden" name="id"><div class="fields">
+            <label class="wide">Article title<input name="title" maxlength="180" required></label>
+            <label>Category<select name="category"><option>Education</option><option>Financial literacy</option><option>Academy news</option></select></label>
+            <label>Publishing status<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+            <label class="wide">Article text<textarea name="body" rows="9" required placeholder="Write your article here."></textarea></label>
+          </div><div class="buttons"><button class="button gold" type="submit">Save article</button><button class="button secondary" type="button" id="post-clear">Clear / new article</button></div></form>
+        </div>
+        <div class="panel"><div class="toolbar"><h2>Saved articles</h2><button class="button secondary" type="button" data-refresh="posts">Refresh</button></div><div id="post-list"></div></div>
+      </section>
+      <section id="tab-links" class="tab-page hidden">
+        <div class="panel"><h2>Approved partner / referral links</h2><p class="hint">Only publish verified HTTPS links that you have permission to promote. Affiliate promotions display a commission disclosure on the public website.</p>
+          <form id="link-form"><input type="hidden" name="id"><div class="fields">
+            <label>Provider / link title<input name="name" required maxlength="120" placeholder="e.g. Verified partner name"></label>
+            <label>Category<input name="category" value="Financial services" required></label>
+            <label class="wide">Full referral URL (https://...)<input name="url" required type="url" placeholder="https://official-provider.example/..."></label>
+            <label>Publishing status<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label>
+            <label>Is this an affiliate or paid referral?<select name="is_affiliate"><option value="yes">Yes — disclose referral</option><option value="no">No</option></select></label>
+            <label class="wide">Description<textarea name="description" placeholder="Describe the service accurately, without guarantees."></textarea></label>
+          </div><div class="buttons"><button class="button gold" type="submit">Save link</button><button class="button secondary" type="button" id="link-clear">Clear / new link</button></div></form>
+        </div>
+        <div class="panel"><div class="toolbar"><h2>Saved links</h2><button class="button secondary" type="button" data-refresh="links">Refresh</button></div><div id="link-list"></div></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
