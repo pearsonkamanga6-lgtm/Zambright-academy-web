@@ -24,12 +24,20 @@
   }
   function wa(message) { return "https://wa.me/" + (config.whatsapp || "260973731979") + "?text=" + encodeURIComponent(message); }
   function isTeacherType(value) { return ["Lesson plan", "Weekly forecast", "Scheme of work"].includes(value); }
+  function matchesGrade(savedGrade, selectedGrade) {
+    if(!selectedGrade) return true;
+    const current=String(savedGrade||"").trim().toLowerCase();
+    const chosen=String(selectedGrade).trim().toLowerCase();
+    if(current===chosen) return true;
+    const numberedGrade=chosen.match(/^grade\s+(\d+)$/);
+    return Boolean(numberedGrade && [numberedGrade[1], "grade"+numberedGrade[1], "g"+numberedGrade[1]].includes(current));
+  }
   function clear(node) { if (node) node.replaceChildren(); }
   function selectedResults() {
     return materials.filter(function (m) {
       const text = [m.title,m.subject,m.grade,m.topic,m.description,m.paper_number,m.exam_year].join(" ").toLowerCase();
       return (!subject.value || m.subject===subject.value)
-        && (!grade.value || m.grade===grade.value)
+        && matchesGrade(m.grade,grade.value)
         && (!type.value || m.content_type===type.value)
         && (!year || !year.value || String(m.exam_year || "") === year.value)
         && (!paper || !paper.value || String(m.paper_number || "").toLowerCase().includes(paper.value.toLowerCase()))
