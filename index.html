@@ -7,6 +7,7 @@
   <meta name="description" content="ZamBright Academy: past papers, assessments, revision notes and teaching resources for learners and teachers in Zambia.">
   <title>ZamBright Academy | Learn Bright. Think Bright. Be Bright.</title>
   <link rel="icon" type="image/png" href="assets/zambright-logo.png">
+  <link rel="stylesheet" href="practice.css?v=3-20261119-a">
   <style>
     :root{--navy:#082d73;--deep:#061e4a;--gold:#f5b400;--pale:#edf4ff;--ink:#203049;--muted:#5c6e87;--border:#dce5f3}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f8faff;font-family:Arial,Helvetica,sans-serif;color:var(--ink);line-height:1.55}a{text-decoration:none;color:inherit}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
@@ -100,6 +101,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script defer src="site-config.js"></script>
   <script defer src="public.js?v=2-20261118-v2final"></script>
+  <script defer src="practice.js?v=3-20261119-a"></script>
 </head>
 <body>
   <div class="tinybar"><div class="wrap"><span>🇿🇲 Made for Zambian learners and teachers</span><span class="extra">Questions? <b>0973731979</b></span></div></div>
@@ -110,7 +112,7 @@
       </a>
       <button id="menu" class="menu" aria-expanded="false" aria-controls="links" type="button">☰ Menu</button>
       <nav class="links" id="links" aria-label="Main navigation">
-        <a href="#subjects">Subjects</a><a href="#library">Past Papers</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact" class="cta">Contact Us</a><a href="admin.html" class="admin-link" aria-label="Administrator sign in">🔒 Admin Login</a>
+        <a href="#subjects">Subjects</a><a href="#library">Past Papers</a><a href="?view=practice" data-open-practice>Practice Questions</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact" class="cta">Contact Us</a><a href="admin.html" class="admin-link" aria-label="Administrator sign in">🔒 Admin Login</a>
       </nav>
     </div>
   </header>
@@ -121,6 +123,61 @@
     </div>
   </div>
   <main>
+    <section id="practice-workspace" class="zb-practice-page" aria-label="ZamBright Academy question bank and practice" hidden>
+      <div class="wrap">
+        <button type="button" id="practice-home" class="zb-practice-back">← Back to ZamBright homepage</button>
+        <div class="zb-practice-head">
+          <span class="zb-practice-kicker">ZAMBRIGHT ACADEMY · LEARN. PRACTICE. IMPROVE.</span>
+          <h1>Practice Questions</h1>
+          <p>Revise by subject, grade, topic and difficulty. Work through questions, check explanations and print worksheets for study at home or school.</p>
+        </div>
+        <div id="practice-filter-panel" class="zb-practice-panel">
+          <h2>Choose what you want to practice</h2>
+          <p id="practice-info" class="zb-practice-note">Loading the published, quality-checked question bank…</p>
+          <div class="zb-practice-filters">
+            <label>Subject<select id="practice-subject"><option value="">All subjects</option></select></label>
+            <label>Grade or form<select id="practice-grade"><option value="">All grades / forms</option></select></label>
+            <label>Topic<select id="practice-topic"><option value="">All topics</option></select></label>
+            <label>Difficulty<select id="practice-difficulty"><option value="">All levels</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="challenging">Challenging</option></select></label>
+          </div>
+          <div class="zb-practice-status" id="practice-count" aria-live="polite">Loading questions…</div>
+          <div class="zb-practice-actions">
+            <button id="practice-start" class="zb-practice-action" type="button" disabled>Start practice</button>
+            <button id="practice-demo" class="zb-practice-action alt" type="button">Try 2 sample questions</button>
+            <button id="practice-print" class="zb-practice-action alt" type="button" disabled>Print worksheet</button>
+          </div>
+          <label class="zb-practice-note" style="display:flex;gap:9px;align-items:center;margin-top:16px">
+            <input id="practice-print-answers" type="checkbox"> Include model answers on printed worksheet
+          </label>
+          <p class="zb-practice-small">The sample questions are original demonstrations, not official ECZ past-paper questions. Published question-bank answers are reviewed by the ZamBright owner. Anonymous practice counts stay on this browser only.</p>
+        </div>
+        <div id="practice-stage" class="zb-practice-panel" hidden>
+          <div class="zb-practice-status" id="practice-progress-label">Question 1</div>
+          <div class="zb-practice-progress"><span id="practice-progress-bar"></span></div>
+          <div id="practice-question-meta" class="zb-practice-meta"></div>
+          <h2 id="practice-question-text" class="zb-practice-question"></h2>
+          <div id="practice-response"></div>
+          <p class="zb-practice-small">Source: <span id="practice-question-source">ZamBright original question</span></p>
+          <p id="practice-message" class="zb-practice-status" aria-live="polite"></p>
+          <div id="practice-feedback" class="zb-practice-feedback" hidden aria-live="polite"></div>
+          <div id="practice-self-mark" class="zb-practice-actions" hidden>
+            <button class="zb-practice-action" id="practice-self-correct" type="button">I got it right</button>
+            <button class="zb-practice-action alt" id="practice-self-incorrect" type="button">I need more practice</button>
+          </div>
+          <div class="zb-practice-actions">
+            <button id="practice-check" class="zb-practice-action" type="button">Check answer</button>
+            <button id="practice-next" class="zb-practice-action" type="button" hidden>Next question →</button>
+          </div>
+        </div>
+        <div id="practice-finish" class="zb-practice-panel" hidden>
+          <h2>Practice complete</h2>
+          <div id="practice-score" class="zb-practice-score">0 / 0</div>
+          <div class="zb-practice-progress"><span id="practice-complete-bar"></span></div>
+          <p id="practice-score-detail" class="zb-practice-note"></p>
+          <button id="practice-again" type="button" class="zb-practice-action">Practice another topic</button>
+        </div>
+      </div>
+    </section>
     <section id="browse-workspace" class="browse-workspace" aria-label="Subject papers and materials" hidden>
       <div class="wrap">
         <nav class="browse-breadcrumb" aria-label="Subject navigation">
@@ -158,7 +215,7 @@
     <section class="hero" id="home"><div class="wrap hero-grid">
       <div><span class="pill">✦ LEARN BRIGHT. THINK BRIGHT. BE BRIGHT.</span><h1>Learning resources that help Zambia <em>shine brighter.</em></h1>
       <p>Past examination papers, test items, detailed revision notes, worked questions, and classroom resources — organised for pupils and teachers.</p>
-      <div class="actions"><a class="btn gold" href="#library">Explore Resources →</a><a class="btn outline" href="#teachers">Resources for Teachers</a></div></div>
+      <div class="actions"><a class="btn gold" href="?view=practice" data-open-practice>Start Practicing →</a><a class="btn outline" href="#library">Browse Past Papers</a><a class="btn outline" href="#teachers">Resources for Teachers</a></div></div>
       <div class="paper" aria-hidden="true"><span class="paper-label">ZAMBRIGHT ACADEMY</span><h2>Examination<br>Practice Papers</h2><p>Mathematics • Science • Biology • More</p><div class="line"></div><div class="line medium"></div><div class="line short"></div><div class="line"></div><div class="paper-bottom"><span>Learn Bright.<br>Think Bright. Be Bright.</span><span>★ ZAMBIA</span></div></div>
     </div></section>
     <section class="section" id="subjects"><div class="wrap"><span class="kicker">Browse by subject</span><h2>Find your subject</h2><p class="desc">Choose a subject to filter the library. Additional subjects and resources will appear as materials are approved and published.</p>
@@ -219,7 +276,8 @@
       </div>
     </div>
   </div>
-  <footer><div class="wrap"><div class="footer-top"><div><strong>ZamBright Academy</strong><p>Learn Bright. Think Bright. Be Bright.<br>Educational resources for Zambia.</p></div><nav class="footnav" aria-label="Footer navigation"><a href="#subjects">Subjects</a><a href="#library">Library</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact">Contact</a><a href="admin.html" title="ZamBright Academy owner sign-in">Admin Login</a></nav></div><div class="bottom"><span>© <span id="year">2026</span> ZamBright Academy. All rights reserved.</span><span>Contact: 0973731979</span></div></div></footer>
+  <div id="practice-worksheet" aria-label="Printable ZamBright practice worksheet"></div>
+  <footer><div class="wrap"><div class="footer-top"><div><strong>ZamBright Academy</strong><p>Learn Bright. Think Bright. Be Bright.<br>Educational resources for Zambia.</p></div><nav class="footnav" aria-label="Footer navigation"><a href="?view=practice" data-open-practice>Practice Questions</a><a href="#subjects">Subjects</a><a href="#library">Library</a><a href="#teachers">Teachers</a><a href="#packages">Materials</a><a href="#articles">Articles</a><a href="#partners">Partners</a><a href="#contact">Contact</a><a href="admin.html" title="ZamBright Academy owner sign-in">Admin Login</a></nav></div><div class="bottom"><span>© <span id="year">2026</span> ZamBright Academy. All rights reserved.</span><span>Contact: 0973731979</span></div></div></footer>
   <script>
     'use strict';
     document.getElementById('year').textContent = new Date().getFullYear();
