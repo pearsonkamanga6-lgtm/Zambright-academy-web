@@ -18,6 +18,11 @@
     .hidden{display:none!important}[hidden]{display:none!important}.button{background:var(--navy);color:white;border:0;border-radius:9px;padding:12px 19px;font-weight:bold;min-height:44px}.button.secondary{background:var(--pale);color:var(--navy)}.button.gold{background:var(--gold);color:var(--deep)}.button.danger{background:#fff0f0;color:#8c1c22}.button:disabled{opacity:.55;cursor:wait}
     .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.fields .wide{grid-column:1/-1}
     label{font-size:13px;font-weight:700;color:#304c77;display:block}input,select,textarea{display:block;width:100%;margin-top:6px;border:1px solid #bdcde4;border-radius:9px;min-height:44px;padding:10px 11px;background:white;color:var(--ink)}textarea{min-height:110px;resize:vertical}.hint{font-size:12px!important;color:var(--muted)}.checks{border:1px solid var(--border);padding:16px;border-radius:12px;background:#fafcff}.checks legend{font-weight:bold;color:var(--navy)}.checks label{display:block;margin:8px 0;font-weight:normal}.checks input{display:inline-block;width:auto;min-height:0;margin:0 8px 0 0}.buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .metadata-alert{background:#fff7df;border:1px solid #e9c978;border-radius:8px;padding:12px 14px;color:#755500;margin-bottom:15px}
+    #tab-questions textarea{width:100%;min-height:85px;resize:vertical}
+    #tab-questions .entry details{margin:10px 0;border:1px solid #dde6f3;border-radius:8px;padding:10px}
+    #tab-questions .entry summary{font-weight:700;color:var(--navy);cursor:pointer}
+    #tab-questions input[type=checkbox]{width:auto;min-height:0}
     .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}.tab{border:1px solid var(--border);border-radius:9px;padding:10px 16px;background:white;color:var(--navy);font-weight:bold}.tab[aria-selected=true]{background:var(--navy);color:white}
     .status{padding:11px 15px;border-radius:10px;background:#edf4ff;border:1px solid #bfceed;margin:15px 0;white-space:pre-wrap;font-size:13px}.status.error{background:#fff1f0;color:#8f2626;border-color:#eab8b5}.status.ok{background:#effaf1;color:#256c35;border-color:#b8e1bc}
     .entry{border-top:1px solid var(--border);padding:16px 0}.entry:first-child{border-top:0}.entry h3{margin:0;color:var(--deep);font-size:17px}.entry p{margin:6px 0;font-size:13px}.entry .meta{color:var(--muted)}.entry .buttons{margin-top:10px}.entry .button{padding:8px 12px;min-height:36px;font-size:12px}
@@ -65,6 +70,7 @@
   <script defer src="site-config.js"></script>
   <script defer src="bulk-upload.js?v=2.1.1"></script>
   <script defer src="admin.js?v=2.1.1"></script>
+  <script defer src="question-admin.js?v=3-20261119-a"></script>
 </head>
 <body>
   <div class="tinybar"><div class="wrap">🇿🇲 Made for Zambian learners and teachers · <strong>Administrator workspace</strong></div></div>
@@ -95,6 +101,7 @@
       <div class="tabs" role="tablist" aria-label="Choose a management area">
         <button type="button" class="tab" data-tab="materials" aria-selected="true">📤 Upload & manage PDFs</button>
         <button type="button" class="tab" data-tab="preview" aria-selected="false">🏠 Website preview</button>
+        <button type="button" class="tab" data-tab="questions" aria-selected="false">📘 Question Bank</button>
         <button type="button" class="tab" data-tab="posts" aria-selected="false">✍️ Articles & blog</button>
         <button type="button" class="tab" data-tab="links" aria-selected="false">🔗 Affiliate links</button>
       </div>
@@ -203,6 +210,57 @@
           </form>
         </div>
         <div class="panel" id="saved-resources"><div class="toolbar"><h2>Saved resources by examination year</h2><button class="button secondary" type="button" data-refresh="materials">Refresh</button></div><div id="material-list"></div></div>
+      </section>
+      <section id="tab-questions" class="tab-page hidden">
+        <div class="panel">
+          <h2>📘 ZamBright Question Bank — Create and Review</h2>
+          <p class="hint">Write your own original CBC learning questions with step-by-step answers. Unverified questions remain private drafts. Match each question to the correct Zambia syllabus topic and check all scientific or mathematical details before publishing.</p>
+          <p class="metadata-alert"><strong>Important:</strong> Do not copy examination questions or claim official ECZ status unless you have the proper rights and source information. Enter official competency wording only after comparing it against the actual syllabus.</p>
+          <div class="buttons"><a class="button secondary" href="index.html?view=practice" target="_blank" rel="noopener noreferrer">See pupil practice area ↗</a><button type="button" id="question-new" class="button gold">+ New question</button></div>
+          <form id="question-form" style="margin-top:18px">
+            <input type="hidden" name="id">
+            <div class="fields">
+              <label>Subject<select name="subject" required>
+                <option>Physics</option><option>Science</option><option>Mathematics</option><option>Biology</option><option>Chemistry</option><option>Civic Education</option><option>Religious Education</option><option>English</option><option>Literature</option>
+              </select></label>
+              <label>Grade / Form<input name="grade" required placeholder="e.g. Form 1" value="Form 1" maxlength="45"></label>
+              <label>Topic<input name="topic" required placeholder="e.g. Stability" maxlength="160"></label>
+              <label>Difficulty<select name="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="challenging">Challenging</option></select></label>
+              <label class="wide">Learning objective / competency<textarea name="competency" rows="2" placeholder="Enter a topic-specific learning objective; only quote official syllabus competencies after checking the syllabus."></textarea></label>
+              <label>Question type<select name="question_type"><option value="short_answer">Scenario or written answer</option><option value="multiple_choice">Multiple choice (auto-marked)</option></select></label>
+              <label>Publishing status<select name="status"><option value="draft">Draft — private</option><option value="published">Published — public practice</option></select></label>
+              <label class="wide">Question text<textarea name="question_text" rows="4" required placeholder="Describe the real-life situation and ask the examination-style question."></textarea></label>
+            </div>
+            <div id="question-mc-fields" hidden>
+              <h3>Multiple-choice options</h3>
+              <div class="fields">
+                <label>Option A<input name="option_a" placeholder="First response"></label>
+                <label>Option B<input name="option_b" placeholder="Second response"></label>
+                <label>Option C<input name="option_c" placeholder="Third response"></label>
+                <label>Option D<input name="option_d" placeholder="Fourth response"></label>
+                <label>Correct option<select name="correct_option"><option value="">Choose the correct answer</option><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select></label>
+              </div>
+            </div>
+            <div class="fields">
+              <label class="wide">Model answer<textarea name="model_answer" rows="4" required placeholder="Provide the complete correct answer."></textarea></label>
+              <label class="wide">Explanation / marking guidance<textarea name="explanation" rows="5" required placeholder="Explain why the answer is correct step by step, or describe marking points for written answers."></textarea></label>
+              <label class="wide">Source label<input name="source_label" value="ZamBright original practice question" maxlength="250" placeholder="e.g. ZamBright original practice question"></label>
+            </div>
+            <fieldset class="checks">
+              <legend>Quality approval</legend>
+              <label><input type="checkbox" name="verified">I have checked the question, answer, explanation and appropriate syllabus topic, and approve it for pupils.</label>
+            </fieldset>
+            <div class="buttons">
+              <button type="submit" class="button gold" id="question-save">Save new question</button>
+              <button type="button" class="button secondary" id="question-refresh">Refresh saved questions</button>
+            </div>
+          </form>
+          <div id="question-admin-feedback" role="status" aria-live="polite" class="status" hidden></div>
+        </div>
+        <div class="panel">
+          <div class="toolbar"><h2>Saved practice questions</h2><strong id="question-admin-count" class="meta">Loading…</strong></div>
+          <div id="question-admin-list"><p class="hint">Select the Question Bank tab to load your questions.</p></div>
+        </div>
       </section>
       <section id="tab-posts" class="tab-page hidden">
         <div class="panel"><h2>Write an article</h2><p class="hint">Write plain text. Financial-literacy posts should discuss costs and risks fairly and avoid promising that a loan will be approved.</p>
